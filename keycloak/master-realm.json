@@ -1,0 +1,37 @@
+{
+  "realm": "master",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "keycloak@localhost",
+    "fromDisplayName": "Keycloak",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  },
+  "clients": [
+    {
+      "clientId": "group-mgmt-test-ui",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true
+    },
+    {
+      "clientId": "group-mgmt",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:8080/realms/master/group-mgmt/*"],
+      "webOrigins": ["+"],
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true
+    }
+  ]
+}
