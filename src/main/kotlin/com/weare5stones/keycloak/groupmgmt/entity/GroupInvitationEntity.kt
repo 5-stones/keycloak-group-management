@@ -41,14 +41,26 @@ class GroupInvitationEntity {
     @Column(name = "token", nullable = false, unique = true, length = 128)
     var token: String = ""
 
-    @Column(name = "role", nullable = false, length = 20)
-    var role: String = "member"
+    /** Canonical comma-delimited role list (lowercase, deduped, sorted). Empty string = no roles. */
+    @Column(name = "roles", nullable = false, length = 255)
+    var roles: String = ""
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Long = System.currentTimeMillis()
 
     @Column(name = "expires_at", nullable = false)
     var expiresAt: Long = System.currentTimeMillis()
+
+    fun getRolesList(): List<String> =
+        if (roles.isBlank()) emptyList() else roles.split(',').filter { it.isNotBlank() }
+
+    fun setRolesList(input: Collection<String>) {
+        roles = input
+            .map { it.lowercase().trim() }
+            .filter { it.isNotEmpty() }
+            .toSortedSet()
+            .joinToString(",")
+    }
 
     fun toMap(groupName: String): Map<String, Any?> {
         return mapOf(
@@ -57,7 +69,7 @@ class GroupInvitationEntity {
             "groupId" to groupId,
             "groupName" to groupName,
             "email" to email,
-            "role" to role,
+            "roles" to getRolesList(),
             "inviterUserId" to inviterUserId,
             "createdAt" to createdAt.toIsoString(),
             "expiresAt" to expiresAt.toIsoString()

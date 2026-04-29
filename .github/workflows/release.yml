@@ -1,0 +1,73 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required to create releases & upload assets
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Node 22
+        # Needed by the bundleAdminUi Gradle task to build the admin SPA.
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: admin/node_modules
+          key: ${{ runner.os }}-admin-npm-${{ hashFiles('admin/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-admin-npm-
+
+      - name: Resolve version from tag
+        id: version
+        # Strip the leading `v` so `v1.2.3` becomes `1.2.3`.
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify gradle.properties version matches tag
+        # Catches the case where someone tagged manually without running
+        # `npm version`, which would produce a JAR whose internal version
+        # disagrees with the tag/release name.
+        run: |
+          EXPECTED=$(grep '^artifactVersion=' gradle.properties | cut -d= -f2)
+          if [ "$EXPECTED" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag '${{ steps.version.outputs.version }}' does not match gradle.properties artifactVersion='$EXPECTED'."
+            echo "The release flow is: npm version <patch|minor|major> (which syncs gradle.properties, regenerates CHANGELOG.md, commits, tags, and pushes)."
+            exit 1
+          fi
+
+      - name: Build (incl. tests + bundled admin UI)
+        run: ./gradlew --no-daemon bundleAdminUi build
+
+      - name: Create release and upload artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/keycloak-group-management-${{ steps.version.outputs.version }}.jar
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -1,6 +1,6 @@
 package com.weare5stones.keycloak.groupmgmt.mapper
 
-import com.weare5stones.keycloak.groupmgmt.service.GroupAdminService
+import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import org.keycloak.models.ClientSessionContext
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.ProtocolMapperModel
@@ -30,7 +30,7 @@ private fun buildConfigProperties(): List<ProviderConfigProperty> {
     props.add(ProviderConfigProperty().apply {
         name = INCLUDE_GROUP_NAME
         label = "Include Group Name"
-        helpText = "Include the group name in each entry. If disabled, only the group ID and role are included."
+        helpText = "Include the group name in each entry. If disabled, only the group ID and roles are included."
         type = ProviderConfigProperty.BOOLEAN_TYPE
         defaultValue = "true"
     })
@@ -74,28 +74,31 @@ class GroupRoleMapper : AbstractOIDCProtocolMapper(),
     override fun getDisplayType(): String = "Group Management Role"
 
     override fun getHelpText(): String =
-        "Maps the user's group memberships and their role (admin/member) within each group to a token claim."
+        "Maps the user's group memberships and the roles they hold within each group to a token claim."
 
     override fun getConfigProperties(): List<ProviderConfigProperty> = CONFIG_PROPERTIES
 
     override fun setClaim(token: IDToken, mappingModel: ProtocolMapperModel, userSession: UserSessionModel,
                           session: KeycloakSession, clientSessionCtx: ClientSessionContext) {
         val user = userSession.user
+        val realm = userSession.realm
         val includeGroupName = mappingModel.config?.get(INCLUDE_GROUP_NAME)?.toBoolean() ?: true
 
-        val groupRoles = user.getGroupsStream().map { group ->
-            val adminIds = GroupAdminService.getAdminIds(group)
-            val role = if (adminIds.contains(user.id)) "admin" else "member"
+        val groups = user.getGroupsStream().toList()
+        val rolesByGroup = GroupRoleService.getRolesForUserInGroups(
+            session, realm.id, user.id, groups.map { it.id }
+        )
 
-            val entry = mutableMapOf<String, String>(
+        val groupRoles = groups.map { group ->
+            val entry = mutableMapOf<String, Any>(
                 "id" to group.id,
-                "role" to role
+                "roles" to (rolesByGroup[group.id]?.sorted() ?: emptyList<String>())
             )
             if (includeGroupName) {
                 entry["name"] = group.name
             }
-            entry as Map<String, String>
-        }.toList()
+            entry
+        }
 
         val claimName = mappingModel.config?.get(OIDCAttributeMapperHelper.TOKEN_CLAIM_NAME) ?: "group_roles"
         token.otherClaims[claimName] = groupRoles

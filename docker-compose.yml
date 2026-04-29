@@ -38,12 +38,14 @@ services:
     ports:
       - "8025:8025"
 
-  test-ui:
-    build: ./test-ui
+  admin:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install --silent && npm run dev"
     ports:
       - "3000:3000"
     volumes:
-      - ./test-ui:/app
+      - ./admin:/app
     depends_on:
       - keycloak
 

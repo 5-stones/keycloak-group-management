@@ -25,7 +25,7 @@
             <column name="token" type="VARCHAR(128)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="role" type="VARCHAR(20)" defaultValue="member">
+            <column name="roles" type="VARCHAR(255)" defaultValue="">
                 <constraints nullable="false"/>
             </column>
             <column name="created_at" type="BIGINT">
@@ -49,6 +49,49 @@
             tableName="group_invitation"
             columnNames="realm_id, group_id, email"
             constraintName="uk_gi_realm_group_email"/>
+
+        <createTable tableName="group_member_role">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="realm_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="group_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+            tableName="group_member_role"
+            columnNames="realm_id, group_id, user_id, role"
+            constraintName="uk_gmr_realm_group_user_role"/>
+
+        <createIndex tableName="group_member_role" indexName="idx_gmr_realm_user_group">
+            <column name="realm_id"/>
+            <column name="user_id"/>
+            <column name="group_id"/>
+        </createIndex>
+
+        <createIndex tableName="group_member_role" indexName="idx_gmr_realm_group_role">
+            <column name="realm_id"/>
+            <column name="group_id"/>
+            <column name="role"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="group_member_role"/>
+            <dropTable tableName="group_invitation"/>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

@@ -1,7 +1,8 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
-import com.weare5stones.keycloak.groupmgmt.service.GroupAdminService
 import com.weare5stones.keycloak.groupmgmt.service.GroupMemberService
+import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
+import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.DefaultValue
 import jakarta.ws.rs.GET
@@ -32,11 +33,15 @@ class GroupMemberResource(
         @QueryParam("pageSize") @DefaultValue("20") pageSize: Int,
         @QueryParam("search") search: String?,
         @QueryParam("sortBy") @DefaultValue("username") sortBy: String,
-        @QueryParam("sortDir") @DefaultValue("asc") sortDir: String
+        @QueryParam("sortDir") @DefaultValue("asc") sortDir: String,
+        @QueryParam("role") role: String?
     ): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
-        val adminIds = GroupAdminService.getAdminIds(group).toSet()
-        val result = memberService.findMembers(groupId, adminIds, search, sortBy, sortDir, page, pageSize)
+        GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_MEMBERS_READ)
+        val result = try {
+            memberService.findMembers(groupId, search, sortBy, sortDir, page, pageSize, role)
+        } catch (e: IllegalArgumentException) {
+            return errorResponse(Response.Status.BAD_REQUEST, e.message ?: "Invalid request", auth)
+        }
         return Response.ok(result).withCors(auth)
     }
 
@@ -44,21 +49,29 @@ class GroupMemberResource(
     @Path("{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     fun removeMember(@PathParam("userId") userId: String): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_MEMBERS_WRITE)
         val user = session.users().getUserById(realm, userId)
             ?: throw NotFoundException("User not found")
 
+        try {
+            GroupRoleService.removeAllRoles(session, realm, auth.user, group.id, userId)
+        } catch (e: IllegalStateException) {
+            return errorResponse(Response.Status.CONFLICT, e.message ?: "Conflict", auth)
+        }
         user.leaveGroup(group)
-        GroupAdminService.demoteFromAdmin(group, userId)
 
         return Response.noContent().withCors(auth)
     }
 
     @PUT
-    @Path("{userId}/promote")
+    @Path("{userId}/roles")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    fun promoteMember(@PathParam("userId") userId: String): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+    fun setMemberRoles(
+        @PathParam("userId") userId: String,
+        body: Map<String, Any?>
+    ): Response {
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_ROLES_WRITE)
         val user = session.users().getUserById(realm, userId)
             ?: throw NotFoundException("User not found")
 
@@ -66,29 +79,25 @@ class GroupMemberResource(
             return errorResponse(Response.Status.BAD_REQUEST, "User is not a member of this group", auth)
         }
 
-        GroupAdminService.promoteToAdmin(group, userId)
+        val rolesInput = body["roles"]
+        if (rolesInput !is List<*>) {
+            return errorResponse(Response.Status.BAD_REQUEST, "'roles' must be an array of strings", auth)
+        }
+        val roles = rolesInput.map { it?.toString() ?: "" }
 
+        try {
+            GroupRoleService.setRoles(session, realm, auth.user, group.id, userId, roles)
+        } catch (e: IllegalArgumentException) {
+            return errorResponse(Response.Status.BAD_REQUEST, e.message ?: "Invalid request", auth)
+        } catch (e: IllegalStateException) {
+            return errorResponse(Response.Status.CONFLICT, e.message ?: "Conflict", auth)
+        }
+
+        val updated = GroupRoleService.getRoles(session, realm.id, group.id, userId).sorted()
         return Response.ok(mapOf(
             "id" to user.id,
             "username" to user.username,
-            "isGroupAdmin" to true
-        )).withCors(auth)
-    }
-
-    @PUT
-    @Path("{userId}/demote")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun demoteMember(@PathParam("userId") userId: String): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
-        val user = session.users().getUserById(realm, userId)
-            ?: throw NotFoundException("User not found")
-
-        GroupAdminService.demoteFromAdmin(group, userId)
-
-        return Response.ok(mapOf(
-            "id" to user.id,
-            "username" to user.username,
-            "isGroupAdmin" to false
+            "roles" to updated
         )).withCors(auth)
     }
 }

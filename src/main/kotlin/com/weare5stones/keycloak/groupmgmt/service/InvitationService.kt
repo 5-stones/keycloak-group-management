@@ -12,7 +12,6 @@ class InvitationService(private val session: KeycloakSession) {
     companion object {
         const val DEFAULT_TTL_HOURS = 72L
         const val TTL_REALM_ATTRIBUTE = "group-invitation-ttl-hours"
-        val VALID_ROLES = setOf("member", "admin")
     }
 
     private val em: EntityManager
@@ -23,20 +22,19 @@ class InvitationService(private val session: KeycloakSession) {
         groupId: String,
         email: String,
         inviterUserId: String,
-        role: String = "member",
+        roles: List<String> = emptyList(),
         ttlHours: Long? = null
     ): GroupInvitationEntity {
+        val realm = session.getContext().realm
         val normalizedEmail = email.lowercase().trim()
-        val normalizedRole = role.lowercase().trim()
-
-        require(normalizedRole in VALID_ROLES) { "Role must be one of: ${VALID_ROLES.joinToString()}" }
+        val normalizedRoles = roles.map { it.lowercase().trim() }.filter { it.isNotEmpty() }
+        normalizedRoles.forEach { GroupRoleService.assertRoleAllowed(realm, it) }
 
         val existing = findByEmailAndGroup(realmId, groupId, normalizedEmail)
         if (existing != null) {
             throw InvitationAlreadyExistsException("An invitation already exists for $normalizedEmail in this group")
         }
 
-        val realm = session.getContext().realm
         val group = session.groups().getGroupById(realm, groupId)
         if (group != null) {
             val searchParams = mapOf(
@@ -60,7 +58,7 @@ class InvitationService(private val session: KeycloakSession) {
             this.groupId = groupId
             this.email = normalizedEmail
             this.inviterUserId = inviterUserId
-            this.role = normalizedRole
+            setRolesList(normalizedRoles)
             this.token = TokenGenerator.generateToken()
             this.createdAt = now
             this.expiresAt = now + TimeUnit.HOURS.toMillis(effectiveTtl)
@@ -125,8 +123,14 @@ class InvitationService(private val session: KeycloakSession) {
         val user = session.users().getUserById(realm, userId) ?: return null
 
         user.joinGroup(group)
-        if (entity.role == "admin") {
-            GroupAdminService.promoteToAdmin(group, userId)
+        val invitedRoles = entity.getRolesList()
+        if (invitedRoles.isNotEmpty()) {
+            // Inviter already passed the grant-policy check at create time; the acceptor
+            // is being assigned roles, not granting them — skip the check here.
+            GroupRoleService.setRoles(
+                session, realm, user, group.id, userId, invitedRoles,
+                enforceGrantPolicy = false,
+            )
         }
         em.remove(entity)
 

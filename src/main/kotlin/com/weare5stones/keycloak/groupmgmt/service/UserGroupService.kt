@@ -65,13 +65,18 @@ class UserGroupService(private val session: KeycloakSession) {
         typedQuery.firstResult = params.offset
         typedQuery.maxResults = params.pageSize
 
-        val groups = typedQuery.resultList.map { entity ->
+        val groupEntities = typedQuery.resultList
+        val rolesByGroup = GroupRoleService.getRolesForUserInGroups(
+            session, realm.id, userId, groupEntities.map { it.id }
+        )
+
+        val groups = groupEntities.map { entity ->
             val groupModel = session.groups().getGroupById(realm, entity.id)
             mapOf<String, Any?>(
                 "id" to entity.id,
                 "name" to entity.name,
                 "path" to (groupModel?.let { buildGroupPath(it) } ?: "/${entity.name}"),
-                "isGroupAdmin" to (isRealmAdmin || (groupModel != null && GroupAdminService.getAdminIds(groupModel).contains(userId)))
+                "roles" to (rolesByGroup[entity.id]?.sorted() ?: emptyList<String>())
             )
         }
 

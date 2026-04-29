@@ -1,0 +1,18 @@
+{
+  "name": "keycloak-group-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Release tooling for the keycloak-group-management plugin. The actual plugin is a Kotlin/Gradle project — see README.md.",
+  "repository": "git@github.com:5-stones/keycloak-group-management.git",
+  "license": "MIT",
+  "scripts": {
+    "build": "./gradlew bundleAdminUi build",
+    "version:gradle": "node ./bin/release.js && git add gradle.properties",
+    "version": "npm run version:gradle && npm run changelog && git add CHANGELOG.md",
+    "postversion": "git push && git push --tags",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
+  },
+  "devDependencies": {
+    "conventional-changelog-cli": "^4.1.0"
+  }
+}

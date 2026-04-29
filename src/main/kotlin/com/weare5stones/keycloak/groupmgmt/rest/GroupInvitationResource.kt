@@ -1,6 +1,6 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
-import com.weare5stones.keycloak.groupmgmt.service.GroupAdminService
+import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import com.weare5stones.keycloak.groupmgmt.service.InvitationAlreadyExistsException
 import com.weare5stones.keycloak.groupmgmt.service.InvitationEmailService
 import com.weare5stones.keycloak.groupmgmt.service.InvitationService
@@ -52,7 +52,7 @@ class GroupInvitationResource(
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     fun createInvitation(body: Map<String, Any?>): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_INVITATIONS_WRITE)
 
         logger.infof("createInvitation: body=%s", body)
 
@@ -60,7 +60,17 @@ class GroupInvitationResource(
             ?: return errorResponse(Response.Status.BAD_REQUEST, "email is required", auth)
 
         val ttlHours = (body["ttlHours"] as? Number)?.toLong()
-        val role = (body["role"] as? String) ?: "member"
+        val rolesInput = body["roles"]
+        val roles: List<String> = when (rolesInput) {
+            null -> emptyList()
+            is List<*> -> rolesInput.map { it?.toString() ?: "" }
+            else -> return errorResponse(Response.Status.BAD_REQUEST, "'roles' must be an array of strings", auth)
+        }
+
+        // Privilege-escalation guard: the inviter cannot grant roles whose permissions
+        // exceed their own. Validated up-front so we don't create an invitation that
+        // would be rejected on accept.
+        GroupRoleService.assertCanGrantRoles(session, realm, group, auth.user, roles)
 
         val invitation = try {
             invitationService.create(
@@ -68,7 +78,7 @@ class GroupInvitationResource(
                 groupId = groupId,
                 email = email,
                 inviterUserId = auth.user.id,
-                role = role,
+                roles = roles,
                 ttlHours = ttlHours
             )
         } catch (e: IllegalArgumentException) {
@@ -102,7 +112,7 @@ class GroupInvitationResource(
         @QueryParam("page") @DefaultValue("1") page: Int,
         @QueryParam("pageSize") @DefaultValue("20") pageSize: Int
     ): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_INVITATIONS_READ)
         val params = paginationParams(page, pageSize)
         val all = invitationService.findByGroup(realm.id, groupId)
         val paged = pagedResponse(
@@ -117,7 +127,7 @@ class GroupInvitationResource(
     @Path("{invitationId}")
     @Produces(MediaType.APPLICATION_JSON)
     fun getInvitation(@PathParam("invitationId") invitationId: String): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_INVITATIONS_READ)
         val invitation = invitationService.findById(invitationId)
             ?: throw NotFoundException("Invitation not found")
         if (invitation.groupId != groupId) throw NotFoundException("Invitation not found")
@@ -128,7 +138,7 @@ class GroupInvitationResource(
     @Path("{invitationId}/resend")
     @Produces(MediaType.APPLICATION_JSON)
     fun resendInvitation(@PathParam("invitationId") invitationId: String): Response {
-        val group = GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_INVITATIONS_WRITE)
         val invitation = invitationService.findById(invitationId)
             ?: throw NotFoundException("Invitation not found")
         if (invitation.groupId != groupId) throw NotFoundException("Invitation not found")
@@ -153,7 +163,7 @@ class GroupInvitationResource(
     @Path("{invitationId}")
     @Produces(MediaType.APPLICATION_JSON)
     fun deleteInvitation(@PathParam("invitationId") invitationId: String): Response {
-        GroupAdminService.requireGroupAdmin(session, realm, groupId, auth.user)
+        GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_INVITATIONS_WRITE)
         val invitation = invitationService.findById(invitationId)
             ?: throw NotFoundException("Invitation not found")
         if (invitation.groupId != groupId) throw NotFoundException("Invitation not found")

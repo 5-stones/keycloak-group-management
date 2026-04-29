@@ -1,6 +1,6 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
-import com.weare5stones.keycloak.groupmgmt.service.GroupAdminService
+import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import com.weare5stones.keycloak.groupmgmt.service.UserGroupService
 import jakarta.ws.rs.DefaultValue
 import jakarta.ws.rs.GET
@@ -28,7 +28,7 @@ class UserGroupsResource(
         @QueryParam("sortBy") @DefaultValue("name") sortBy: String,
         @QueryParam("sortDir") @DefaultValue("asc") sortDir: String
     ): Response {
-        val isRealmAdmin = GroupAdminService.isRealmAdmin(session, realm, auth.user)
+        val isRealmAdmin = GroupRoleService.isRealmAdmin(session, realm, auth.user)
         val result = groupService.findGroups(realm, auth.user.id, isRealmAdmin, search, sortBy, sortDir, page, pageSize)
         return Response.ok(result).withCors(auth)
     }

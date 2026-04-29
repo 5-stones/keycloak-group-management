@@ -19,6 +19,8 @@ Thumbs.db
 
 # Node
 node_modules/
+admin/dist
+test-ui/dist
 
 # Claude Code
 .claude/
