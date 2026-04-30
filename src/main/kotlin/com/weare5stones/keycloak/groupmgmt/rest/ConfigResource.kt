@@ -19,6 +19,7 @@ class ConfigResource(
     companion object {
         val CONFIG_KEYS = listOf(
             "group-mgmt-post-accept-url",
+            "group-mgmt-invitation-client-id",
             "group-invitation-ttl-hours",
             GroupRoleService.ALLOWED_ROLES_ATTRIBUTE,
             GroupRoleService.ROLE_PERMISSIONS_ATTRIBUTE,

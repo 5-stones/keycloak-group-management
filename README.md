@@ -2,6 +2,15 @@
 
 A Keycloak SPI plugin that adds local group administration, invitation management, and membership controls via a REST API — plus an optional bundled admin UI for realm operators.
 
+- [Features](#features)
+- [Documentation](#documentation)
+- [Bundled admin UI](#bundled-admin-ui)
+  - [Group dashboard](#group-dashboard)
+  - [Realm configuration](#realm-configuration)
+- [Installation & Setup](#installation--setup)
+  - [Post-install configuration](#post-install-configuration)
+- [Local development environment](#local-development-environment)
+
 ## Features
 
 - **Custom Roles** — Each group member can hold any number of arbitrary string roles. `admin` is the conventional privileged role; holders can manage members, roles, and invitations within the group. Other roles are application-defined and stored as data.
@@ -39,7 +48,7 @@ Invite, role-edit, and remove members inline. Members support search and role fi
 
 Realm admins manage the role vocabulary, per-role permissions, post-accept redirect URL, and invitation TTL from the browser — no admin-console attribute editing required. See [docs/configuration.md](docs/configuration.md) for the underlying realm attributes and the REST equivalent.
 
-## Install in your Keycloak instance
+## Installation & Setup
 
 We publish a built JAR (with the bundled admin UI included) for every tagged release of this repo. Download it and drop it into your Keycloak's `providers/` directory.
 
@@ -63,7 +72,11 @@ After placing the JAR, restart Keycloak. For production-mode (optimized) install
 
 ### Post-install configuration
 
-Before users can hit the API, configure two OIDC clients in each realm where the plugin is used (`group-mgmt` for the invitation accept flow and `group-mgmt-test-ui` for the bundled SPA / any frontend you ship). Full client config — including required redirect URIs and Web Origins — is in [docs/deployment.md](docs/deployment.md). Once that's in place, realm admins can manage everything else from the bundled admin UI at `/realms/{realm}/group-mgmt/admin/`.
+Append `/realms/{realm}/group-mgmt/*` to the realm's existing **`security-admin-console`** client — both **Valid Redirect URIs** and **Web Origins**. That single edit covers both the bundled admin SPA and the default invitation accept flow.
+
+If you ship a customer-facing UI with its own OIDC client (different theme, IdPs, etc.), point invitations at it via the admin UI's **Invitation Login Client ID** setting (or the `group-mgmt-invitation-client-id` realm attribute). See [docs/deployment.md](docs/deployment.md) for the customer-facing-client setup.
+
+After that, realm admins manage everything else from the bundled admin UI at `/realms/{realm}/group-mgmt/admin/`.
 
 Add the **Group Management Role** OIDC mapper to the client scope used by your application clients to surface the `group_roles` claim in tokens (see [docs/api.md](docs/api.md#jwt-token-mapper)).
 

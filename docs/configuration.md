@@ -8,6 +8,7 @@ Plugin configuration is per-realm, stored as realm attributes. Realm admins can 
 |-----|-------------|---------|
 | `group-invitation-ttl-hours` | Default invitation expiry in hours | `72` |
 | `group-mgmt-post-accept-url` | URL to redirect to after invitation acceptance | _(shows built-in HTML page)_ |
+| `group-mgmt-invitation-client-id` | OIDC `client_id` used when an invitee clicks the email link and gets redirected to Keycloak's login UI. Pick a client whose theme, registration flow, and IdP list match the invitee audience (typically your customer-facing client). The client must allow `/realms/{realm}/group-mgmt/invitations/accept` in its Valid Redirect URIs. | `security-admin-console` |
 | `group-mgmt-allowed-roles` | Comma-separated list of additional role names that can be assigned to members. `admin` and `member` are always implicit and do not need to be listed. | _(unset = no extra roles)_ — the vocabulary is always `admin` + `member` + the values listed here. |
 | `group-mgmt-role-permissions` | Optional JSON object mapping role names to permission lists, e.g. `{"viewer":["members:read"],"manager":["members:read","members:write","roles:write"]}`. Permissions are validated against the vocabulary on PUT. Custom roles named here must also be in `group-mgmt-allowed-roles`; `member` is implicit and is always allowed. The `admin` role is reserved (cannot be redefined) and grants all permissions implicitly. | _(unset = no role-level permissions; only `admin` grants access)_ |
 
@@ -19,7 +20,7 @@ See [Authorization](authorization.md) for the semantics of `group-mgmt-allowed-r
 
 If the JAR was built with `./gradlew bundleAdminUi`, realm admins can manage these attributes from the browser at `/realms/{realm}/group-mgmt/admin/`. The UI provides:
 
-- Plain text fields for `group-mgmt-post-accept-url` and `group-invitation-ttl-hours`.
+- Plain text fields for `group-mgmt-post-accept-url`, `group-invitation-ttl-hours`, and `group-mgmt-invitation-client-id`.
 - A structured Roles & Permissions editor that writes both `group-mgmt-allowed-roles` and `group-mgmt-role-permissions` atomically. Each row is one role; permissions are picked from a multi-select. `admin` is shown read-only at the top (reserved), `member` is shown as a baseline-perms row.
 
 See [Development → Bundling the admin UI](development.md#bundling-the-admin-ui-into-the-jar) for how to package the SPA into the JAR.

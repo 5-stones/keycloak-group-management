@@ -14,28 +14,20 @@
   },
   "clients": [
     {
-      "clientId": "group-mgmt-test-ui",
+      "clientId": "security-admin-console",
       "enabled": true,
       "publicClient": true,
-      "directAccessGrantsEnabled": true,
+      "rootUrl": "${authAdminUrl}",
+      "baseUrl": "/admin/master/console/",
       "redirectUris": [
+        "/admin/master/console/*",
         "http://localhost:3000/*",
-        "http://localhost:8080/realms/master/group-mgmt/admin/*"
+        "http://localhost:8080/realms/master/group-mgmt/*"
       ],
       "webOrigins": [
-        "http://localhost:3000",
-        "http://localhost:8080"
+        "+",
+        "http://localhost:3000"
       ],
-      "protocol": "openid-connect",
-      "standardFlowEnabled": true
-    },
-    {
-      "clientId": "group-mgmt",
-      "enabled": true,
-      "publicClient": true,
-      "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:8080/realms/master/group-mgmt/*"],
-      "webOrigins": ["+"],
       "protocol": "openid-connect",
       "standardFlowEnabled": true
     }

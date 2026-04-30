@@ -113,6 +113,21 @@ export default function ConfigPage() {
       placeholder: '72',
       help: 'Default expiry time for invitations. Can be overridden per-invitation.',
     },
+    {
+      key: 'group-mgmt-invitation-client-id',
+      label: 'Invitation Login Client ID',
+      placeholder: 'security-admin-console',
+      help: (
+        <>
+          OIDC client used when an invitee clicks the email link and gets redirected to Keycloak's login UI.
+          Choose a client whose theme, registration flow, and identity-provider settings match the invitee
+          audience — typically your customer-facing client. Whatever client you pick must allow{' '}
+          <code className="rounded bg-slate-100 px-1">/realms/{'{realm}'}/group-mgmt/invitations/accept</code>{' '}
+          in its Valid Redirect URIs. Leave blank to fall back to <code className="rounded bg-slate-100 px-1">security-admin-console</code>{' '}
+          (admin-themed; fine for internal use, override for customer-facing flows).
+        </>
+      ),
+    },
   ]
 
   if (!config) {

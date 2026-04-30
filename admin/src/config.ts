@@ -28,7 +28,7 @@ const bundled = detectBundled()
 
 export const KEYCLOAK_URL = bundled?.keycloakUrl ?? 'http://localhost:8080'
 export const REALM = bundled?.realm ?? 'master'
-export const CLIENT_ID = 'group-mgmt-test-ui'
+export const CLIENT_ID = 'security-admin-console'
 // Path prefix the SPA is mounted at — empty in standalone mode, the realm/group-mgmt/admin
 // prefix in bundled mode. Used by React Router as basename.
 export const BASE_PATH = bundled?.basePath ?? ''

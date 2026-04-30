@@ -19,7 +19,8 @@ class InvitationAcceptResource(
 ) {
 
     companion object {
-        const val CLIENT_ID = "group-mgmt"
+        const val DEFAULT_CLIENT_ID = "security-admin-console"
+        const val CLIENT_ID_ATTR = "group-mgmt-invitation-client-id"
         const val POST_ACCEPT_URL_ATTR = "group-mgmt-post-accept-url"
     }
 
@@ -176,8 +177,12 @@ class InvitationAcceptResource(
     private fun redirectToLogin(token: String): Response {
         val baseUrl = session.getContext().uri.baseUri.toString().removeSuffix("/")
         val acceptUrl = "$baseUrl/realms/${realm.name}/group-mgmt/invitations/accept?token=${URLEncoder.encode(token, "UTF-8")}"
+        // The invitee sees this client's login UI (theme, registration flow, IdP list,
+        // MFA policy). Operators with their own customer-facing client should set
+        // [CLIENT_ID_ATTR] so the email-link login matches their product branding.
+        val clientId = realm.getAttribute(CLIENT_ID_ATTR)?.takeIf { it.isNotBlank() } ?: DEFAULT_CLIENT_ID
         val loginUrl = "$baseUrl/realms/${realm.name}/protocol/openid-connect/auth" +
-            "?client_id=$CLIENT_ID" +
+            "?client_id=${URLEncoder.encode(clientId, "UTF-8")}" +
             "&response_type=none" +
             "&scope=openid" +
             "&redirect_uri=${URLEncoder.encode(acceptUrl, "UTF-8")}"

@@ -6,23 +6,26 @@ The plugin automatically creates its `group_invitation` and `group_member_role` 
 
 ## OIDC Clients
 
-The plugin uses (or expects) two public OIDC clients per realm. Both ship in the dev `master-realm.json` import; production deployments need to recreate them.
+The plugin uses Keycloak's built-in `security-admin-console` client by default for both the bundled admin SPA and the invitation accept flow. **No new clients to create** — just edit the existing one.
 
-### `group-mgmt` — invitation accept browser flow
+### Setup: extend `security-admin-console`
 
-- **Standard Flow Enabled**: `true`
-- **Valid Redirect URIs**: the accept endpoint, e.g. `http://your-keycloak/realms/{realm}/group-mgmt/*`
-- **Registration Enabled** (realm-level): recommended so invited users can register during the accept flow.
+The realm's `security-admin-console` client (the same one Keycloak's own admin console uses) needs two extra entries:
 
-### `group-mgmt-test-ui` — used by the admin SPA
+- **Valid Redirect URIs**: append `http://your-keycloak/realms/{realm}/group-mgmt/*` (and `http://localhost:3000/*` for the dev Vite server, if you use it).
+- **Web Origins**: append the same hosts.
 
-(The client ID is historical; it's the OIDC client the bundled/dev admin SPA logs into.)
+After that, both flows work out of the box. The audience for the admin SPA is realm/group admins, so the admin-console look-and-feel is appropriate. Invitees clicking email links will also see admin-console-themed login by default — fine for internal use, but probably wrong for customer-facing flows.
 
-- **Standard Flow Enabled**: `true`
-- **Valid Redirect URIs**: include the bundled SPA's callback path, e.g. `http://your-keycloak/realms/{realm}/group-mgmt/admin/*`. Add `http://localhost:3000/*` for dev.
-- **Web Origins**: include the same hosts (`http://your-keycloak`, plus `http://localhost:3000` in dev) — required for the OIDC token-exchange CORS preflight.
+### Customer-facing invitation branding
 
-If you only ship the backend (no `bundleAdminUi`) and don't use the dev admin SPA, you can skip this client.
+If you ship a customer-facing UI with its own OIDC client (custom theme, different IdPs, registration flow, MFA policy), you almost certainly want invitees to see *that* login experience instead of the admin-console default. Override it from the bundled admin UI's **Configuration** page → **Invitation Login Client ID**, or by setting the realm attribute directly:
+
+```
+group-mgmt-invitation-client-id = your-customer-client
+```
+
+When this attribute is set, the plugin uses your client's `client_id` when redirecting invitees to login. The only constraint: that client must include `http://your-keycloak/realms/{realm}/group-mgmt/invitations/accept` in its Valid Redirect URIs. Web Origins for `your-keycloak` should also be set on that client so the post-accept redirect works.
 
 ## Bundled admin SPA
 
