@@ -2,7 +2,7 @@
 
 Download the pre-built JAR from the [Releases](https://github.com/5-stones/keycloak-group-management/releases) page — see [README → Install in your Keycloak instance](../README.md#install-in-your-keycloak-instance) for the full install steps (`wget` and `Dockerfile` recipes).
 
-The plugin automatically creates its `group_invitation` and `group_member_role` database tables via Liquibase on first boot. No external migration step is required.
+The plugin automatically creates its `fs_group_invitation` and `fs_group_member_role` database tables via Liquibase on first boot. No external migration step is required.
 
 ## OIDC Clients
 

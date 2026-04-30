@@ -10,16 +10,16 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "group_member_role",
+    name = "fs_group_member_role",
     uniqueConstraints = [
         UniqueConstraint(
-            name = "uk_gmr_realm_group_user_role",
+            name = "uk_fs_group_member_role_realm_group_user_role",
             columnNames = ["realm_id", "group_id", "user_id", "role"]
         )
     ],
     indexes = [
-        Index(name = "idx_gmr_realm_user_group", columnList = "realm_id, user_id, group_id"),
-        Index(name = "idx_gmr_realm_group_role", columnList = "realm_id, group_id, role")
+        Index(name = "idx_fs_group_member_role_realm_user_group", columnList = "realm_id, user_id, group_id"),
+        Index(name = "idx_fs_group_member_role_realm_group_role", columnList = "realm_id, group_id, role")
     ]
 )
 class GroupMemberRoleEntity {

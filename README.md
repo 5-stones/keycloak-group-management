@@ -64,7 +64,7 @@ ADD --chown=keycloak:keycloak \
 
 > **Note:** `ADD` is used because modern `quay.io/keycloak/keycloak` base images [don't ship a package manager](https://www.keycloak.org/server/containers#_installing_additional_rpm_packages).
 
-After placing the JAR, restart Keycloak. For production-mode (optimized) installs, run `kc.sh build` first so Quarkus picks up the new provider. On first start, the plugin auto-creates the `group_invitation` and `group_member_role` tables via Liquibase — no external migration step needed.
+After placing the JAR, restart Keycloak. For production-mode (optimized) installs, run `kc.sh build` first so Quarkus picks up the new provider. On first start, the plugin auto-creates the `fs_group_invitation` and `fs_group_member_role` tables via Liquibase — no external migration step needed.
 
 ### Post-install configuration
 
@@ -91,6 +91,6 @@ Add the **Group Management Role** OIDC mapper to the client scope used by your a
 | **Bundled admin UI** | <http://localhost:8080/realms/master/group-mgmt/admin/> | The shipped admin UI served from inside the plugin JAR (only after `bundleAdminUi`). |
 | **Admin SPA (dev)** | <http://localhost:3000> | Hot-reloading Vite dev server for `admin/`. Same code as the bundled UI. |
 | **Mailpit** | <http://localhost:8025> | Captures every invitation email the plugin sends. |
-| **PostgreSQL** | `localhost:5432` · creds `keycloak` / `keycloak` | Plugin tables (`group_invitation`, `group_member_role`) live here alongside Keycloak's own. |
+| **PostgreSQL** | `localhost:5432` · creds `keycloak` / `keycloak` | Plugin tables (`fs_group_invitation`, `fs_group_member_role`) live here alongside Keycloak's own. |
 
 Tests run in-process against an H2 in-memory database (JUnit 5 + Hibernate); no Docker needed. For the full developer workflow — hot-reload, restart-on-rebuild, test commands, the SPA bundling pipeline — see [docs/development.md](docs/development.md).

@@ -7,7 +7,7 @@ The plugin authorizes every REST call against a per-(realm, group, user) role as
 | Subject | Scope |
 |---------|-------|
 | **Realm admin** (`admin` role or `manage-users` on `realm-management`/`{realm}-realm` client) | All operations across all groups; bypasses last-admin guard |
-| **Group admin** (member with the `admin` role in the group's `group_member_role` table) | Implicitly grants every permission below |
+| **Group admin** (member with the `admin` role in the group's `fs_group_member_role` table) | Implicitly grants every permission below |
 | **Group member with permission roles** | Specific REST operations gated by individual permissions (see [Permissions](#permissions)) |
 | **Authenticated user** | Accept invitations sent to their email, list their own groups |
 

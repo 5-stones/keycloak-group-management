@@ -6,7 +6,7 @@
             http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
     <changeSet id="1" author="weare5stones">
-        <createTable tableName="group_invitation">
+        <createTable tableName="fs_group_invitation">
             <column name="id" type="VARCHAR(36)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -36,21 +36,21 @@
             </column>
         </createTable>
 
-        <createIndex tableName="group_invitation" indexName="idx_gi_realm_group">
+        <createIndex tableName="fs_group_invitation" indexName="idx_fs_group_invitation_realm_group">
             <column name="realm_id"/>
             <column name="group_id"/>
         </createIndex>
 
-        <createIndex tableName="group_invitation" indexName="idx_gi_token" unique="true">
+        <createIndex tableName="fs_group_invitation" indexName="idx_fs_group_invitation_token" unique="true">
             <column name="token"/>
         </createIndex>
 
         <addUniqueConstraint
-            tableName="group_invitation"
+            tableName="fs_group_invitation"
             columnNames="realm_id, group_id, email"
-            constraintName="uk_gi_realm_group_email"/>
+            constraintName="uk_fs_group_invitation_realm_group_email"/>
 
-        <createTable tableName="group_member_role">
+        <createTable tableName="fs_group_member_role">
             <column name="id" type="VARCHAR(36)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
@@ -72,25 +72,25 @@
         </createTable>
 
         <addUniqueConstraint
-            tableName="group_member_role"
+            tableName="fs_group_member_role"
             columnNames="realm_id, group_id, user_id, role"
-            constraintName="uk_gmr_realm_group_user_role"/>
+            constraintName="uk_fs_group_member_role_realm_group_user_role"/>
 
-        <createIndex tableName="group_member_role" indexName="idx_gmr_realm_user_group">
+        <createIndex tableName="fs_group_member_role" indexName="idx_fs_group_member_role_realm_user_group">
             <column name="realm_id"/>
             <column name="user_id"/>
             <column name="group_id"/>
         </createIndex>
 
-        <createIndex tableName="group_member_role" indexName="idx_gmr_realm_group_role">
+        <createIndex tableName="fs_group_member_role" indexName="idx_fs_group_member_role_realm_group_role">
             <column name="realm_id"/>
             <column name="group_id"/>
             <column name="role"/>
         </createIndex>
 
         <rollback>
-            <dropTable tableName="group_member_role"/>
-            <dropTable tableName="group_invitation"/>
+            <dropTable tableName="fs_group_member_role"/>
+            <dropTable tableName="fs_group_invitation"/>
         </rollback>
     </changeSet>
 

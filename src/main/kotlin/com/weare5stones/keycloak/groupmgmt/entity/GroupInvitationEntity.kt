@@ -11,13 +11,16 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "group_invitation",
+    name = "fs_group_invitation",
     uniqueConstraints = [
-        UniqueConstraint(name = "uk_gi_realm_group_email", columnNames = ["realm_id", "group_id", "email"])
+        UniqueConstraint(
+            name = "uk_fs_group_invitation_realm_group_email",
+            columnNames = ["realm_id", "group_id", "email"]
+        )
     ],
     indexes = [
-        Index(name = "idx_gi_realm_group", columnList = "realm_id, group_id"),
-        Index(name = "idx_gi_token", columnList = "token", unique = true)
+        Index(name = "idx_fs_group_invitation_realm_group", columnList = "realm_id, group_id"),
+        Index(name = "idx_fs_group_invitation_token", columnList = "token", unique = true)
     ]
 )
 class GroupInvitationEntity {
