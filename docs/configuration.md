@@ -1,6 +1,6 @@
 # Configuration
 
-Plugin configuration is per-realm, stored as realm attributes. Realm admins can read/write the configuration via the [`/api/config` endpoint](api.md#configuration) or, if the JAR is built with the bundled SPA, via the admin UI at `/realms/{realm}/group-mgmt/config/`.
+Plugin configuration is per-realm, stored as realm attributes. Realm admins can read/write the configuration via the [`/api/config` endpoint](api.md#configuration) or, if the JAR is built with the bundled SPA, via the admin UI at `/realms/{realm}/group-mgmt/admin/`.
 
 ## Realm attributes
 
@@ -17,7 +17,7 @@ See [Authorization](authorization.md) for the semantics of `group-mgmt-allowed-r
 
 ![Bundled realm-admin configuration UI showing Roles & Permissions and Invitations](assets/group-membership-admin-8-plugin-config.png)
 
-If the JAR was built with `./gradlew bundleAdminUi`, realm admins can manage these attributes from the browser at `/realms/{realm}/group-mgmt/config/`. The UI provides:
+If the JAR was built with `./gradlew bundleAdminUi`, realm admins can manage these attributes from the browser at `/realms/{realm}/group-mgmt/admin/`. The UI provides:
 
 - Plain text fields for `group-mgmt-post-accept-url` and `group-invitation-ttl-hours`.
 - A structured Roles & Permissions editor that writes both `group-mgmt-allowed-roles` and `group-mgmt-role-permissions` atomically. Each row is one role; permissions are picked from a multi-select. `admin` is shown read-only at the top (reserved), `member` is shown as a baseline-perms row.

@@ -5,7 +5,7 @@ Base path for JSON APIs: `/realms/{realm}/group-mgmt/api`
 Top-level user-facing endpoints (outside `/api`):
 
 - `/realms/{realm}/group-mgmt/invitations/accept?token=...` — invitation landing page (HTML or JSON depending on method). Kept stable so URLs in already-sent invitation emails don't break.
-- `/realms/{realm}/group-mgmt/config/...` — bundled admin SPA (only present when the JAR is built with `bundleAdminUi`; see [Development](development.md#bundling-the-admin-ui-into-the-jar)).
+- `/realms/{realm}/group-mgmt/admin/...` — bundled admin SPA (only present when the JAR is built with `bundleAdminUi`; see [Development](development.md#bundling-the-admin-ui-into-the-jar)).
 
 All `/api/*` paths require a Bearer token. Permissions are documented per endpoint and explained in detail in [Authorization](authorization.md).
 

@@ -82,9 +82,8 @@ tasks.test {
 }
 
 // ---------------------------------------------------------------------------
-// Admin UI bundling — packages the realm-admin config SPA from `admin/`
-// into the plugin JAR under `admin-ui/`, so it can be served at
-// /realms/{realm}/group-mgmt/ui/.
+// Admin UI bundling — packages the admin SPA from `admin/` into the plugin
+// JAR under `admin-ui/`, so it can be served at /realms/{realm}/group-mgmt/admin/.
 //
 // Opt-in: not part of the default `build`. Run `./gradlew bundleAdminUi build`
 // (or `./gradlew bundleAdminUi shadowJar`) to produce a JAR with the UI included.
@@ -112,7 +111,8 @@ val buildAdminUi = tasks.register<Exec>("buildAdminUi") {
     inputs.dir("admin/src")
     inputs.file("admin/index.html")
     inputs.file("admin/package.json")
-    inputs.file("admin/vite.config.js")
+    inputs.file("admin/vite.config.ts")
+    inputs.file("admin/tsconfig.json")
     outputs.dir("admin/dist")
 }
 

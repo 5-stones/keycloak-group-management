@@ -20,7 +20,7 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": [
         "http://localhost:3000/*",
-        "http://localhost:8080/realms/master/group-mgmt/config/*"
+        "http://localhost:8080/realms/master/group-mgmt/admin/*"
       ],
       "webOrigins": [
         "http://localhost:3000",

@@ -4,6 +4,7 @@ import com.weare5stones.keycloak.groupmgmt.entity.GroupMemberRoleEntity
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.NotFoundException
+import org.jboss.logging.Logger
 import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.models.GroupModel
 import org.keycloak.models.KeycloakSession
@@ -12,6 +13,8 @@ import org.keycloak.models.UserModel
 import org.keycloak.util.JsonSerialization
 
 object GroupRoleService {
+
+    private val logger = Logger.getLogger(GroupRoleService::class.java)
 
     const val ADMIN_ROLE = "admin"
     const val MEMBER_ROLE = "member"
@@ -319,7 +322,15 @@ object GroupRoleService {
     fun getRolePermissions(realm: RealmModel): Map<String, Set<String>> {
         val raw = realm.getAttribute(ROLE_PERMISSIONS_ATTRIBUTE)?.takeIf { it.isNotBlank() }
             ?: return emptyMap()
-        return runCatching { parseRolePermissions(raw, allowedRoles = null) }.getOrDefault(emptyMap())
+        return try {
+            parseRolePermissions(raw, allowedRoles = null)
+        } catch (e: IllegalArgumentException) {
+            logger.debugf(
+                "Ignoring malformed '%s' on realm '%s': %s",
+                ROLE_PERMISSIONS_ATTRIBUTE, realm.name, e.message,
+            )
+            emptyMap()
+        }
     }
 
     /**
@@ -583,6 +594,15 @@ object GroupRoleService {
         return ADMIN_ROLE in getRoles(session, realm.id, group.id, user.id)
     }
 
+    /**
+     * Three checks because Keycloak grants realm-admin authority via three different routes:
+     * (1) the master realm's `admin` realm-role on the user;
+     * (2) `manage-users` on the per-realm `realm-management` client (granted to realm admins
+     *     created inside that realm);
+     * (3) `manage-users` on the master realm's `${realm.name}-realm` proxy client (granted to
+     *     master-realm admins acting on a specific realm). All three must be honoured to
+     *     match Keycloak's own admin-console authorization model.
+     */
     fun isRealmAdmin(session: KeycloakSession, realm: RealmModel, user: UserModel): Boolean {
         val adminRole = realm.getRole("admin")
         if (adminRole != null && user.hasRole(adminRole)) return true

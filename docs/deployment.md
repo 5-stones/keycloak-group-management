@@ -19,14 +19,14 @@ The plugin uses (or expects) two public OIDC clients per realm. Both ship in the
 (The client ID is historical; it's the OIDC client the bundled/dev admin SPA logs into.)
 
 - **Standard Flow Enabled**: `true`
-- **Valid Redirect URIs**: include the bundled SPA's callback path, e.g. `http://your-keycloak/realms/{realm}/group-mgmt/config/*`. Add `http://localhost:3000/*` for dev.
+- **Valid Redirect URIs**: include the bundled SPA's callback path, e.g. `http://your-keycloak/realms/{realm}/group-mgmt/admin/*`. Add `http://localhost:3000/*` for dev.
 - **Web Origins**: include the same hosts (`http://your-keycloak`, plus `http://localhost:3000` in dev) — required for the OIDC token-exchange CORS preflight.
 
 If you only ship the backend (no `bundleAdminUi`) and don't use the dev admin SPA, you can skip this client.
 
 ## Bundled admin SPA
 
-When the JAR is built with `./gradlew bundleAdminUi`, the realm-admin config UI is served from the JAR at `/realms/{realm}/group-mgmt/config/`. Realm admins log in via OIDC (same redirect-URI requirements as above) and configure the plugin from a browser without touching realm attributes manually. See [Development → Bundling the admin UI](development.md#bundling-the-admin-ui-into-the-jar) for the build pipeline.
+When the JAR is built with `./gradlew bundleAdminUi`, the admin UI is served from the JAR at `/realms/{realm}/group-mgmt/admin/`. Realm and group admins log in via OIDC (same redirect-URI requirements as above) and manage groups, members, and invitations from a browser; realm admins additionally get a Configuration page that edits the plugin's realm attributes without the operator having to touch them by hand. See [Development → Bundling the admin UI](development.md#bundling-the-admin-ui-into-the-jar) for the build pipeline.
 
 ## Database compatibility
 

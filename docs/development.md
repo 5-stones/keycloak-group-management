@@ -28,14 +28,14 @@ First run requires `docker compose down -v` if schema or realm-import changes ar
 | Service | URL | Description |
 |---------|-----|-------------|
 | **Keycloak** | [http://localhost:8080](http://localhost:8080) | Keycloak admin console. Login: `admin` / `admin` |
-| **Bundled admin UI** | [http://localhost:8080/realms/master/group-mgmt/config/](http://localhost:8080/realms/master/group-mgmt/config/) | Realm-admin config UI served from the plugin JAR. Only present after `bundleAdminUi`. |
+| **Bundled admin UI** | [http://localhost:8080/realms/master/group-mgmt/admin/](http://localhost:8080/realms/master/group-mgmt/admin/) | Admin UI (groups, members, invitations, realm config) served from the plugin JAR. Only present after `bundleAdminUi`. |
 | **Admin SPA (dev)** | [http://localhost:3000](http://localhost:3000) | Vite dev server for the admin SPA in `admin/`. Hot reload. Same code as the bundled UI. |
 | **Mailpit** | [http://localhost:8025](http://localhost:8025) | Email inbox. All invitation emails sent by the plugin appear here. |
 | **PostgreSQL** | `localhost:5432` | Database. Credentials: `keycloak` / `keycloak` |
 
 ## Bundling the admin UI into the JAR
 
-The admin SPA in `admin/` (the realm-admin config UI) can be packaged inside the plugin JAR and served by Keycloak at `/realms/{realm}/group-mgmt/config/`. This is opt-in — the default `./gradlew build` produces a backend-only JAR.
+The admin SPA in `admin/` (the bundled admin UI — groups, members, invitations, plus the realm-admin config page) can be packaged inside the plugin JAR and served by Keycloak at `/realms/{realm}/group-mgmt/admin/`. This is opt-in — the default `./gradlew build` produces a backend-only JAR.
 
 ```bash
 ./gradlew bundleAdminUi build      # full build incl. tests + bundled SPA

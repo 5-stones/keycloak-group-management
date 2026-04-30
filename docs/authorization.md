@@ -66,7 +66,7 @@ Setting member roles is done via the bundled UI (or `PUT /members/{id}/roles`); 
 
 ## Privilege-escalation guard
 
-`roles:write` does not let a non-admin grant roles that exceed their own access. When setting member roles or creating an invitation, every role being **added** is checked: each of its permissions must be a subset of the actor's effective permissions. If not, the request returns 403 with a message naming the missing permissions. Removing roles is unaffected — you can demote anyone (subject to the last-admin guard).
+`roles:write` does not let a non-admin grant roles that exceed their own access. When setting member roles or creating an invitation, every role being **added** is checked: each of its permissions must be a subset of the actor's effective permissions. If not, the request returns 403 with a message naming the missing permissions. Removing roles is unaffected — you can remove any role from any member (subject to the last-admin guard).
 
 The `admin` role requires an existing admin (group admin or realm admin) to grant. Realm admins and group admins bypass the guard entirely.
 

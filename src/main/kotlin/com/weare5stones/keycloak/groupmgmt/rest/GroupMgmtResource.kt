@@ -12,7 +12,7 @@ import org.keycloak.services.cors.Cors
 /**
  * Top-level resource for the plugin. Layout:
  *  - `/api/...` — authenticated JSON endpoints (groups, members, invitations, config, roles, etc.)
- *  - `/config/...` — bundled admin SPA (static files, served by [UiResource])
+ *  - `/admin/...` — bundled admin SPA (static files, served by [UiResource])
  *  - `/invitations/accept` — email-linked invitation landing page (HTML or JSON), kept at the
  *    top level so the URLs in already-sent invitation emails remain stable.
  */
@@ -75,6 +75,6 @@ class GroupMgmtResource(private val session: KeycloakSession) {
     }
 
     /** Bundled admin SPA. Static files; SPA does its own OIDC. */
-    @Path("config")
-    fun configUi(): UiResource = UiResource(session)
+    @Path("admin")
+    fun adminUi(): UiResource = UiResource(session)
 }

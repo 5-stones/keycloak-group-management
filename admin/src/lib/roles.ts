@@ -1,6 +1,6 @@
 // Helpers for parsing/normalising the realm role-permission config payload.
 
-export const PERM_FALLBACK = [
+export const PERM_FALLBACK: string[] = [
   'group:write',
   'members:read',
   'members:write',
@@ -11,14 +11,20 @@ export const PERM_FALLBACK = [
 
 export const ROLE_NAME_REGEX = /^[a-z0-9_-]{1,64}$/
 
-export function parseRolePermissionsSafe(str) {
+export interface RoleEntry {
+  name: string
+  permissions: Set<string>
+  reserved: boolean
+}
+
+export function parseRolePermissionsSafe(str: string | null | undefined): Record<string, string[]> {
   if (!str) return {}
   try {
-    const obj = JSON.parse(str)
+    const obj: unknown = JSON.parse(str)
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {}
-    const result = {}
-    for (const [k, v] of Object.entries(obj)) {
-      if (Array.isArray(v)) result[k] = v.filter(p => typeof p === 'string')
+    const result: Record<string, string[]> = {}
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (Array.isArray(v)) result[k] = v.filter((p): p is string => typeof p === 'string')
     }
     return result
   } catch {
@@ -26,15 +32,18 @@ export function parseRolePermissionsSafe(str) {
   }
 }
 
-export function buildRolesList(allowedRolesCsv, rolePermsJson) {
+export function buildRolesList(
+  allowedRolesCsv: string | null | undefined,
+  rolePermsJson: string | null | undefined,
+): RoleEntry[] {
   const allowed = (allowedRolesCsv || '')
-    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
   const rolePerms = parseRolePermissionsSafe(rolePermsJson)
   // `member` is always implicit (like `admin`); ensure it shows up as a row.
   const names = [...new Set([...allowed, ...Object.keys(rolePerms), 'member'])]
-    .filter(n => n !== 'admin')
+    .filter((n) => n !== 'admin')
     .sort()
-  return names.map(name => ({
+  return names.map((name) => ({
     name,
     permissions: new Set(rolePerms[name] || []),
     reserved: name === 'member',

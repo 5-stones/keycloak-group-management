@@ -1,10 +1,10 @@
 package com.weare5stones.keycloak.groupmgmt.service
 
 import com.weare5stones.keycloak.groupmgmt.util.PagedResponse
+import com.weare5stones.keycloak.groupmgmt.util.fullPath
 import com.weare5stones.keycloak.groupmgmt.util.pagedResponse
 import com.weare5stones.keycloak.groupmgmt.util.paginationParams
 import org.keycloak.connections.jpa.JpaConnectionProvider
-import org.keycloak.models.GroupModel
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.RealmModel
 import org.keycloak.models.jpa.entities.GroupEntity
@@ -75,7 +75,7 @@ class UserGroupService(private val session: KeycloakSession) {
             mapOf<String, Any?>(
                 "id" to entity.id,
                 "name" to entity.name,
-                "path" to (groupModel?.let { buildGroupPath(it) } ?: "/${entity.name}"),
+                "path" to (groupModel?.fullPath() ?: "/${entity.name}"),
                 "roles" to (rolesByGroup[entity.id]?.sorted() ?: emptyList<String>())
             )
         }
@@ -95,13 +95,4 @@ class UserGroupService(private val session: KeycloakSession) {
         return subquery
     }
 
-    private fun buildGroupPath(group: GroupModel): String {
-        val parts = mutableListOf(group.name)
-        var parent = group.parent
-        while (parent != null) {
-            parts.add(0, parent.name)
-            parent = parent.parent
-        }
-        return "/" + parts.joinToString("/")
-    }
 }

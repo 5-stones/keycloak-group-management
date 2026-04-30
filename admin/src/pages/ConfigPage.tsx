@@ -1,41 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import Select from 'react-select'
-import { api } from '../api.js'
-import useToken from '../hooks/useToken.js'
-import { PERM_FALLBACK, ROLE_NAME_REGEX, buildRolesList } from '../lib/roles.js'
+import { api, type Config } from '../api'
+import useToken from '../hooks/useToken'
+import { PERM_FALLBACK, ROLE_NAME_REGEX, buildRolesList, type RoleEntry } from '../lib/roles'
+import {
+  SELECT_CLASS_NAMES,
+  SELECT_STYLES,
+  SELECT_PORTAL_TARGET,
+  rolesToOptions,
+  type RoleOption,
+} from '../lib/select'
 
-const SELECT_CLASS_NAMES = {
-  control: () => 'rs__control',
-  multiValue: () => 'rs__multi-value',
-  multiValueLabel: () => 'rs__multi-value__label',
-  multiValueRemove: () => 'rs__multi-value__remove',
-  option: ({ isFocused, isSelected }) =>
-    `${isFocused ? 'rs__option--is-focused' : ''} ${isSelected ? 'rs__option--is-selected' : ''}`,
-}
+type FormState = Record<string, string>
 
-const SELECT_STYLES = {
-  // The table wrapper has `overflow-hidden` (for the rounded corners), which
-  // clips the dropdown when it opens past the row. Rendering the menu in a
-  // portal keeps it visible and stacks above any other UI.
-  menu: (base) => ({ ...base, zIndex: 9999 }),
-  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-}
-
-const SELECT_PORTAL_TARGET = typeof document !== 'undefined' ? document.body : null
-
-function rolesToOptions(roles) {
-  return (roles || []).map((r) => ({ value: r, label: r }))
+interface ConfigField {
+  key: string
+  label: string
+  placeholder: string
+  help: ReactNode
 }
 
 export default function ConfigPage() {
   const getToken = useToken()
-  const [config, setConfig] = useState(null)
-  const [form, setForm] = useState({})
-  const [rolesList, setRolesList] = useState([])
-  const [permissions, setPermissions] = useState(PERM_FALLBACK)
+  const [config, setConfig] = useState<Config | null>(null)
+  const [form, setForm] = useState<FormState>({})
+  const [rolesList, setRolesList] = useState<RoleEntry[]>([])
+  const [permissions, setPermissions] = useState<string[]>(PERM_FALLBACK)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const loadConfig = async () => {
     setError(null)
@@ -50,7 +43,7 @@ export default function ConfigPage() {
       setRolesList(buildRolesList(data['group-mgmt-allowed-roles'], data['group-mgmt-role-permissions']))
       if (rolesData?.permissions?.length) setPermissions(rolesData.permissions)
     } catch (e) {
-      setError(e.message)
+      setError((e as Error).message)
     }
   }
 
@@ -66,14 +59,14 @@ export default function ConfigPage() {
         .filter((r) => !r.reserved)
         .map((r) => r.name)
         .join(',')
-      const rolePermsObj = Object.fromEntries(
+      const rolePermsObj: Record<string, string[]> = Object.fromEntries(
         rolesList
           .filter((r) => r.permissions.size > 0)
           .map((r) => [r.name, Array.from(r.permissions).sort()])
       )
       const rolePermsStr = Object.keys(rolePermsObj).length ? JSON.stringify(rolePermsObj) : ''
 
-      const payload = {
+      const payload: Config = {
         ...form,
         'group-mgmt-allowed-roles': allowedRolesCsv,
         'group-mgmt-role-permissions': rolePermsStr,
@@ -85,12 +78,12 @@ export default function ConfigPage() {
       setRolesList(buildRolesList(data['group-mgmt-allowed-roles'], data['group-mgmt-role-permissions']))
       setSuccess('Configuration saved.')
     } catch (e) {
-      setError(e.message)
+      setError((e as Error).message)
     }
     setSaving(false)
   }
 
-  const fields = [
+  const fields: ConfigField[] = [
     {
       key: 'group-mgmt-post-accept-url',
       label: 'Post-Accept Redirect URL',
@@ -177,16 +170,22 @@ export default function ConfigPage() {
   )
 }
 
-function RolePermissionsEditor({ rolesList, permissions, onChange }) {
-  const [newRoleName, setNewRoleName] = useState('')
-  const [newRolePerms, setNewRolePerms] = useState(() => new Set())
-  const [addError, setAddError] = useState(null)
+interface RolePermissionsEditorProps {
+  rolesList: RoleEntry[]
+  permissions: string[]
+  onChange: (next: RoleEntry[]) => void
+}
 
-  const setPerms = (idx, perms) => {
+function RolePermissionsEditor({ rolesList, permissions, onChange }: RolePermissionsEditorProps) {
+  const [newRoleName, setNewRoleName] = useState('')
+  const [newRolePerms, setNewRolePerms] = useState<Set<string>>(() => new Set())
+  const [addError, setAddError] = useState<string | null>(null)
+
+  const setPerms = (idx: number, perms: Set<string>) => {
     onChange(rolesList.map((r, i) => (i === idx ? { ...r, permissions: perms } : r)))
   }
 
-  const removeRole = (idx) => {
+  const removeRole = (idx: number) => {
     onChange(rolesList.filter((_, i) => i !== idx))
   }
 
@@ -205,7 +204,7 @@ function RolePermissionsEditor({ rolesList, permissions, onChange }) {
       setAddError(`'${name}' already exists.`)
       return
     }
-    const sorted = [...rolesList, { name, permissions: newRolePerms }]
+    const sorted: RoleEntry[] = [...rolesList, { name, permissions: newRolePerms, reserved: false }]
       .sort((a, b) => a.name.localeCompare(b.name))
     onChange(sorted)
     setNewRoleName('')
@@ -252,7 +251,7 @@ function RolePermissionsEditor({ rolesList, permissions, onChange }) {
                 )}
               </td>
               <td className="px-4 py-3 align-middle">
-                <Select
+                <Select<RoleOption, true>
                   isMulti
                   isClearable={false}
                   classNamePrefix="rs"
@@ -296,7 +295,7 @@ function RolePermissionsEditor({ rolesList, permissions, onChange }) {
               />
             </td>
             <td className="px-4 py-3 align-middle">
-              <Select
+              <Select<RoleOption, true>
                 isMulti
                 isClearable={false}
                 classNamePrefix="rs"

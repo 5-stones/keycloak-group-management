@@ -1,5 +1,5 @@
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
-import { KEYCLOAK_URL, REALM, CLIENT_ID, BASE_PATH, IS_BUNDLED } from './config.js'
+import { KEYCLOAK_URL, REALM, CLIENT_ID, BASE_PATH, IS_BUNDLED } from './config'
 
 // In bundled mode the SPA is served from Keycloak under BASE_PATH; redirects must
 // target the same origin/path. In standalone mode, fall back to the dev-server URL.

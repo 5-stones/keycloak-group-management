@@ -11,7 +11,7 @@ import org.keycloak.models.KeycloakSession
  * Serves the bundled admin SPA (`admin/` Vite output) from the plugin JAR.
  *
  * - Bundle layout in the JAR: `admin-ui/index.html` plus `admin-ui/assets/` files.
- * - Mounted at `/realms/{realm}/group-mgmt/config/...`.
+ * - Mounted at `/realms/{realm}/group-mgmt/admin/...`.
  * - Files (anything containing a `.` after the last `/`) are served as-is.
  * - Any other path returns `index.html` so React Router can handle SPA routing on
  *   direct navigation / refresh.
@@ -33,10 +33,10 @@ class UiResource(private val session: KeycloakSession) {
 
         // index.html gets a `<base href>` injected pointing at the SPA root for the
         // current realm. This lets the browser resolve relative asset URLs correctly
-        // regardless of how deep the current SPA route is (e.g. /admin/config refreshes).
+        // regardless of how deep the current SPA route is (e.g. /groups/{id} refreshes).
         if (resourcePath == "admin-ui/index.html") {
             val realm = session.context.realm.name
-            val basePath = "/realms/$realm/group-mgmt/config/"
+            val basePath = "/realms/$realm/group-mgmt/admin/"
             val html = stream.bufferedReader().use { it.readText() }
             val withBase = injectBaseHref(html, basePath)
             return Response.ok(withBase)

@@ -3,11 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Standalone realm-admin config UI for the Keycloak group-management plugin. Bundled into the plugin JAR and served at /realms/{realm}/group-mgmt/ui/.",
+  "description": "Bundled admin UI for the Keycloak group-management plugin. Served at /realms/{realm}/group-mgmt/admin/ when the plugin JAR is built with bundleAdminUi.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "oidc-client-ts": "^3.1.0",
@@ -23,6 +24,7 @@
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
     "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3",
     "vite": "^6.3.4"
   }
 }

@@ -10,7 +10,7 @@ A Keycloak SPI plugin that adds local group administration, invitation managemen
 - **Membership Management** — List, filter by role, set roles, remove members. Last-admin guard prevents accidentally orphaning a group.
 - **JWT Token Mapper** — Configurable OIDC protocol mapper that emits the user's group memberships and per-group roles as a token claim.
 - **Per-Realm Configuration** — Invitation TTL, post-accept redirect URL, role vocabulary, and role-to-permission map are all per-realm attributes.
-- **Bundled Admin UI** — Optional React/Tailwind config UI packaged into the JAR (`./gradlew bundleAdminUi`) and served by Keycloak at `/realms/{realm}/group-mgmt/config/`.
+- **Bundled Admin UI** — Optional React/Tailwind admin UI packaged into the JAR (`./gradlew bundleAdminUi`) and served by Keycloak at `/realms/{realm}/group-mgmt/admin/`. Realm and group admins manage groups, members, and invitations from the browser; realm admins also get the realm-level role/permission editor.
 - **Pagination, search, sorting** on every list endpoint.
 
 ## Documentation
@@ -25,7 +25,7 @@ A Keycloak SPI plugin that adds local group administration, invitation managemen
 
 ## Bundled admin UI
 
-The plugin by default includes an optional membership admin UI served by Keycloak at `/realms/{realm}/group-mgmt/config/`. Realm and group admins share the same per-group dashboard; the Configuration tab is shown only to realm admins.
+The plugin by default includes an optional membership admin UI served by Keycloak at `/realms/{realm}/group-mgmt/admin/`. Realm and group admins share the same per-group dashboard; the Configuration tab is shown only to realm admins.
 
 ### Group dashboard
 
@@ -63,7 +63,7 @@ After placing the JAR, restart Keycloak. For production-mode (optimized) install
 
 ### Post-install configuration
 
-Before users can hit the API, configure two OIDC clients in each realm where the plugin is used (`group-mgmt` for the invitation accept flow and `group-mgmt-test-ui` for the bundled SPA / any frontend you ship). Full client config — including required redirect URIs and Web Origins — is in [docs/deployment.md](docs/deployment.md). Once that's in place, realm admins can manage everything else from the bundled admin UI at `/realms/{realm}/group-mgmt/config/`.
+Before users can hit the API, configure two OIDC clients in each realm where the plugin is used (`group-mgmt` for the invitation accept flow and `group-mgmt-test-ui` for the bundled SPA / any frontend you ship). Full client config — including required redirect URIs and Web Origins — is in [docs/deployment.md](docs/deployment.md). Once that's in place, realm admins can manage everything else from the bundled admin UI at `/realms/{realm}/group-mgmt/admin/`.
 
 Add the **Group Management Role** OIDC mapper to the client scope used by your application clients to surface the `group_roles` claim in tokens (see [docs/api.md](docs/api.md#jwt-token-mapper)).
 
@@ -79,7 +79,7 @@ Add the **Group Management Role** OIDC mapper to the client scope used by your a
 | Service | URL | What it is | Stack |
 |---|---|---|---|
 | **Keycloak** | <http://localhost:8080> · login `admin` / `admin` | The plugin host. | Kotlin · JVM 17 · Keycloak 26.3.3 SPIs (`RealmResourceProvider`, `JpaEntityProvider`, `ProtocolMapper`) · Gradle + Shadow |
-| **Bundled admin UI** | <http://localhost:8080/realms/master/group-mgmt/config/> | The shipped admin UI served from inside the plugin JAR (only after `bundleAdminUi`). | React 19 · Tailwind v4 + `@tailwindcss/forms` · react-select · oidc-client-ts · Vite |
+| **Bundled admin UI** | <http://localhost:8080/realms/master/group-mgmt/admin/> | The shipped admin UI served from inside the plugin JAR (only after `bundleAdminUi`). | React 19 · Tailwind v4 + `@tailwindcss/forms` · react-select · oidc-client-ts · Vite |
 | **Admin SPA (dev)** | <http://localhost:3000> | Hot-reloading Vite dev server for `admin/`. Same code as the bundled UI. | Same as bundled admin UI |
 | **Mailpit** | <http://localhost:8025> | Captures every invitation email the plugin sends. | — |
 | **PostgreSQL** | `localhost:5432` · creds `keycloak` / `keycloak` | Plugin tables (`group_invitation`, `group_member_role`) live here alongside Keycloak's own. | PostgreSQL 15 in dev; the plugin is also compatible with MariaDB / MySQL / MSSQL / Oracle (Liquibase uses generic types) |

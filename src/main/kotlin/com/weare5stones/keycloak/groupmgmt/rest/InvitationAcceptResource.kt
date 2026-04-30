@@ -1,5 +1,6 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
+import com.weare5stones.keycloak.groupmgmt.entity.GroupInvitationEntity
 import com.weare5stones.keycloak.groupmgmt.service.InvitationService
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
@@ -26,6 +27,24 @@ class InvitationAcceptResource(
     private val realm = session.getContext().realm
 
     /**
+     * Outcome of validating that a (token, caller) pair is allowed to accept an invitation.
+     * Both the GET and POST flows perform the same validation; only the response shape differs.
+     */
+    private sealed class ValidationResult {
+        data class Valid(val invitation: GroupInvitationEntity) : ValidationResult()
+        /** [invitation] is populated on `wrong_account`, null otherwise. */
+        data class Invalid(val code: String, val invitation: GroupInvitationEntity? = null) : ValidationResult()
+    }
+
+    private fun validateInvitation(token: String?, userEmail: String?): ValidationResult {
+        if (token.isNullOrBlank()) return ValidationResult.Invalid("invalid_token")
+        val invitation = invitationService.findByToken(token) ?: return ValidationResult.Invalid("not_found")
+        val normalized = userEmail?.lowercase()?.trim()
+        if (normalized != invitation.email) return ValidationResult.Invalid("wrong_account", invitation)
+        return ValidationResult.Valid(invitation)
+    }
+
+    /**
      * Browser flow: user clicks link from email.
      * If not authenticated, redirect to Keycloak login page.
      * If authenticated, accept and redirect to configured URL or show HTML fallback.
@@ -38,12 +57,20 @@ class InvitationAcceptResource(
         }
 
         val authResult = AuthenticationManager.authenticateIdentityCookie(session, realm, true)
+            ?: return redirectToLogin(token)
 
-        if (authResult == null) {
-            return redirectToLogin(token)
+        val callerEmail = authResult.user.email?.lowercase()?.trim()
+        return when (val result = validateInvitation(token, authResult.user.email)) {
+            is ValidationResult.Invalid -> respondWithError(result.code, htmlMessageFor(result, callerEmail))
+            is ValidationResult.Valid -> {
+                val invitation = result.invitation
+                val groupName = session.groups().getGroupById(realm, invitation.groupId)?.name ?: ""
+                val accepted = invitationService.accept(token, authResult.user.id)
+                    ?: return respondWithError("expired",
+                        "This invitation has expired. Please request a new one.")
+                respondWithSuccess(accepted.groupId, groupName)
+            }
         }
-
-        return processAcceptance(token, authResult)
     }
 
     /**
@@ -58,58 +85,47 @@ class InvitationAcceptResource(
                 .entity(mapOf("error" to "Authentication required"))
                 .build()
 
-        if (token.isNullOrBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(mapOf("error" to "Token is required"))
+        return when (val result = validateInvitation(token, authResult.user.email)) {
+            is ValidationResult.Invalid -> Response.status(jsonStatusFor(result.code))
+                .entity(mapOf("error" to jsonMessageFor(result.code)))
                 .withCors(authResult)
+            is ValidationResult.Valid -> {
+                val invitation = result.invitation
+                val group = session.groups().getGroupById(realm, invitation.groupId)
+                val accepted = invitationService.accept(token!!, authResult.user.id)
+                    ?: return Response.status(Response.Status.GONE)
+                        .entity(mapOf("error" to "Invitation has expired"))
+                        .withCors(authResult)
+                Response.ok(mapOf(
+                    "message" to "Invitation accepted successfully",
+                    "groupId" to accepted.groupId,
+                    "groupName" to (group?.name ?: "")
+                )).withCors(authResult)
+            }
         }
-
-        val invitation = invitationService.findByToken(token)
-            ?: return Response.status(Response.Status.NOT_FOUND)
-                .entity(mapOf("error" to "Invalid or expired invitation"))
-                .withCors(authResult)
-
-        val userEmail = authResult.user.email?.lowercase()?.trim()
-        if (userEmail != invitation.email) {
-            return Response.status(Response.Status.FORBIDDEN)
-                .entity(mapOf("error" to "This invitation was not sent to your email address"))
-                .withCors(authResult)
-        }
-
-        val group = session.groups().getGroupById(realm, invitation.groupId)
-
-        val accepted = invitationService.accept(token, authResult.user.id)
-            ?: return Response.status(Response.Status.GONE)
-                .entity(mapOf("error" to "Invitation has expired"))
-                .withCors(authResult)
-
-        return Response.ok(mapOf(
-            "message" to "Invitation accepted successfully",
-            "groupId" to accepted.groupId,
-            "groupName" to (group?.name ?: "")
-        )).withCors(authResult)
     }
 
-    private fun processAcceptance(token: String, authResult: AuthenticationManager.AuthResult): Response {
-        val invitation = invitationService.findByToken(token)
-            ?: return respondWithError("not_found",
-                "This invitation is invalid, has already been accepted, or has expired.")
+    /** User-facing description for the HTML flow; pulled from the invitation when relevant. */
+    private fun htmlMessageFor(result: ValidationResult.Invalid, userEmail: String?): String = when (result.code) {
+        "invalid_token" -> "No invitation token was provided."
+        "not_found" -> "This invitation is invalid, has already been accepted, or has expired."
+        "wrong_account" -> "This invitation was sent to ${result.invitation?.email ?: "another address"}, " +
+            "but you are logged in as ${userEmail ?: "unknown"}."
+        else -> "Something went wrong."
+    }
 
-        val userEmail = authResult.user.email?.lowercase()?.trim()
-        if (userEmail != invitation.email) {
-            return respondWithError("wrong_account",
-                "This invitation was sent to ${invitation.email}, " +
-                    "but you are logged in as ${userEmail ?: "unknown"}.")
-        }
+    private fun jsonMessageFor(code: String): String = when (code) {
+        "invalid_token" -> "Token is required"
+        "not_found" -> "Invalid or expired invitation"
+        "wrong_account" -> "This invitation was not sent to your email address"
+        else -> "Something went wrong"
+    }
 
-        val group = session.groups().getGroupById(realm, invitation.groupId)
-        val groupName = group?.name ?: ""
-
-        val accepted = invitationService.accept(token, authResult.user.id)
-            ?: return respondWithError("expired",
-                "This invitation has expired. Please request a new one.")
-
-        return respondWithSuccess(accepted.groupId, groupName)
+    private fun jsonStatusFor(code: String): Response.Status = when (code) {
+        "invalid_token" -> Response.Status.BAD_REQUEST
+        "not_found" -> Response.Status.NOT_FOUND
+        "wrong_account" -> Response.Status.FORBIDDEN
+        else -> Response.Status.BAD_REQUEST
     }
 
     /**

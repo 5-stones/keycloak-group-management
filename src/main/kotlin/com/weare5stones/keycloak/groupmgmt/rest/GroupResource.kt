@@ -1,6 +1,7 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
 import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
+import com.weare5stones.keycloak.groupmgmt.util.fullPath
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.GET
@@ -73,16 +74,6 @@ class GroupResource(
     private fun toMap(group: org.keycloak.models.GroupModel): Map<String, Any?> = mapOf(
         "id" to group.id,
         "name" to group.name,
-        "path" to buildPath(group),
+        "path" to group.fullPath(),
     )
-
-    private fun buildPath(group: org.keycloak.models.GroupModel): String {
-        val parts = mutableListOf(group.name)
-        var parent = group.parent
-        while (parent != null) {
-            parts.add(0, parent.name)
-            parent = parent.parent
-        }
-        return "/" + parts.joinToString("/")
-    }
 }
