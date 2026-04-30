@@ -13,24 +13,20 @@ A Keycloak SPI plugin that adds local group administration, invitation managemen
 
 ## Features
 
-- **Custom Roles** — Each group member can hold any number of arbitrary string roles. `admin` is the conventional privileged role; holders can manage members, roles, and invitations within the group. Other roles are application-defined and stored as data.
-- **Per-role Permissions** — A realm-level role-to-permission map gates each REST endpoint individually (`members:read`, `invitations:write`, `group:write`, etc.). Privilege-escalation guard prevents non-admins from granting roles that exceed their own access.
-- **Invitations** — Group admins invite users by email with an optional list of roles to grant on acceptance. Token-based, expiring, unique per (user, group). Inviting triggers a templated email; acceptance is a one-click browser flow that handles registration if needed.
-- **Membership Management** — List, filter by role, set roles, remove members. Last-admin guard prevents accidentally orphaning a group.
-- **JWT Token Mapper** — Configurable OIDC protocol mapper that emits the user's group memberships and per-group roles as a token claim.
-- **Per-Realm Configuration** — Invitation TTL, post-accept redirect URL, role vocabulary, and role-to-permission map are all per-realm attributes.
-- **Bundled Admin UI** — Optional React/Tailwind admin UI packaged into the JAR (`./gradlew bundleAdminUi`) and served by Keycloak at `/realms/{realm}/group-mgmt/admin/`. Realm and group admins manage groups, members, and invitations from the browser; realm admins also get the realm-level role/permission editor.
-- **Pagination, search, sorting** on every list endpoint.
+- **Custom Roles** — Build custom membership roles per realm and assign them to users.
+- **Invitations** — Built in and customizeable email invitations.
+- **API Driven** — Built in REST API for managing, listing, filtering all aspects of membership.
+- **Built in Admin** — Built in [configuration and membership admin interface](#bundled-admin-ui) for realm admins.
+- **JWT Token Mapper** — Easily add group membership roles to user JWTs.
+- **Per-Realm Configuration** — Invitation TTL, post-accept URL, role vocabulary, and permissions on each realm.
 
 ## Documentation
 
-| Document | What it covers |
-|---|---|
-| [docs/api.md](docs/api.md) | REST API reference, query parameters, JWT claim shape |
-| [docs/authorization.md](docs/authorization.md) | Auth model, role vocabulary, permissions, privilege-escalation guard, last-admin guard |
-| [docs/configuration.md](docs/configuration.md) | Per-realm config attributes and how to edit them |
-| [docs/development.md](docs/development.md) | Local setup, build commands, bundling the SPA, running tests |
-| [docs/deployment.md](docs/deployment.md) | Production deployment, required OIDC clients, database compatibility |
+- [docs/api.md](docs/api.md)
+- [docs/authorization.md](docs/authorization.md)
+- [docs/configuration.md](docs/configuration.md)
+- [docs/development.md](docs/development.md)
+- [docs/deployment.md](docs/deployment.md)
 
 ## Bundled admin UI
 
@@ -89,12 +85,12 @@ Add the **Group Management Role** OIDC mapper to the client scope used by your a
 ./gradlew build && docker compose up                 # backend only (no Node.js needed)
 ```
 
-| Service | URL | What it is | Stack |
-|---|---|---|---|
-| **Keycloak** | <http://localhost:8080> · login `admin` / `admin` | The plugin host. | Kotlin · JVM 17 · Keycloak 26.3.3 SPIs (`RealmResourceProvider`, `JpaEntityProvider`, `ProtocolMapper`) · Gradle + Shadow |
-| **Bundled admin UI** | <http://localhost:8080/realms/master/group-mgmt/admin/> | The shipped admin UI served from inside the plugin JAR (only after `bundleAdminUi`). | React 19 · Tailwind v4 + `@tailwindcss/forms` · react-select · oidc-client-ts · Vite |
-| **Admin SPA (dev)** | <http://localhost:3000> | Hot-reloading Vite dev server for `admin/`. Same code as the bundled UI. | Same as bundled admin UI |
-| **Mailpit** | <http://localhost:8025> | Captures every invitation email the plugin sends. | — |
-| **PostgreSQL** | `localhost:5432` · creds `keycloak` / `keycloak` | Plugin tables (`group_invitation`, `group_member_role`) live here alongside Keycloak's own. | PostgreSQL 15 in dev; the plugin is also compatible with MariaDB / MySQL / MSSQL / Oracle (Liquibase uses generic types) |
+| Service | URL | What it is |
+|---|---|---|
+| **Keycloak** | <http://localhost:8080> · login `admin` / `admin` | The plugin host. |
+| **Bundled admin UI** | <http://localhost:8080/realms/master/group-mgmt/admin/> | The shipped admin UI served from inside the plugin JAR (only after `bundleAdminUi`). |
+| **Admin SPA (dev)** | <http://localhost:3000> | Hot-reloading Vite dev server for `admin/`. Same code as the bundled UI. |
+| **Mailpit** | <http://localhost:8025> | Captures every invitation email the plugin sends. |
+| **PostgreSQL** | `localhost:5432` · creds `keycloak` / `keycloak` | Plugin tables (`group_invitation`, `group_member_role`) live here alongside Keycloak's own. |
 
 Tests run in-process against an H2 in-memory database (JUnit 5 + Hibernate); no Docker needed. For the full developer workflow — hot-reload, restart-on-rebuild, test commands, the SPA bundling pipeline — see [docs/development.md](docs/development.md).
