@@ -1,3 +1,12 @@
+# [1.0.0-rc.2](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-05-05)
+
+
+### Features
+
+* **invitations:** send PKCE params on login redirect ([977c4de](https://github.com/5-stones/keycloak-group-management/commit/977c4def10926a7cb13fd457815b6def5bd431a0))
+
+
+
 # [1.0.0-rc.1](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.0...v1.0.0-rc.1) (2026-04-30)
 
 
