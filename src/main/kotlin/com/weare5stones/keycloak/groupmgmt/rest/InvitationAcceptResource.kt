@@ -13,6 +13,9 @@ import org.keycloak.services.managers.AppAuthManager
 import org.keycloak.services.managers.AuthenticationManager
 import java.net.URI
 import java.net.URLEncoder
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 
 class InvitationAcceptResource(
     private val session: KeycloakSession
@@ -181,12 +184,25 @@ class InvitationAcceptResource(
         // MFA policy). Operators with their own customer-facing client should set
         // [CLIENT_ID_ATTR] so the email-link login matches their product branding.
         val clientId = realm.getAttribute(CLIENT_ID_ATTR)?.takeIf { it.isNotBlank() } ?: DEFAULT_CLIENT_ID
+        // PKCE params are sent unconditionally: required by clients like `security-admin-console`,
+        // harmless for clients that don't enforce it. With `response_type=none` no code is issued,
+        // so the verifier never needs to be exchanged — we discard it.
+        val codeChallenge = generatePkceChallenge()
         val loginUrl = "$baseUrl/realms/${realm.name}/protocol/openid-connect/auth" +
             "?client_id=${URLEncoder.encode(clientId, "UTF-8")}" +
             "&response_type=none" +
             "&scope=openid" +
-            "&redirect_uri=${URLEncoder.encode(acceptUrl, "UTF-8")}"
+            "&redirect_uri=${URLEncoder.encode(acceptUrl, "UTF-8")}" +
+            "&code_challenge=${URLEncoder.encode(codeChallenge, "UTF-8")}" +
+            "&code_challenge_method=S256"
         return Response.temporaryRedirect(URI.create(loginUrl)).build()
+    }
+
+    private fun generatePkceChallenge(): String {
+        val verifierBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+        val verifier = Base64.getUrlEncoder().withoutPadding().encodeToString(verifierBytes)
+        val digest = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII))
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
     }
 
     private fun htmlResponse(title: String, message: String, error: Boolean = false): Response {

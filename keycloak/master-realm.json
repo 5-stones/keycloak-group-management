@@ -29,7 +29,10 @@
         "http://localhost:3000"
       ],
       "protocol": "openid-connect",
-      "standardFlowEnabled": true
+      "standardFlowEnabled": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
     }
   ]
 }
