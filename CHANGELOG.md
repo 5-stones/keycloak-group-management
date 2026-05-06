@@ -1,3 +1,12 @@
+# [1.0.0-rc.3](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.2...v1.0.0-rc.3) (2026-05-06)
+
+
+### Features
+
+* **authz:** permission inheritance + tree-navigation listing ([375cd6a](https://github.com/5-stones/keycloak-group-management/commit/375cd6ab15fdda78a53ea85360c753eee3c0b500))
+
+
+
 # [1.0.0-rc.2](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-05-05)
 
 
