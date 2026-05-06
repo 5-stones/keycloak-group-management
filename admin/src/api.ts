@@ -17,11 +17,33 @@ export interface Paged<T> {
   meta: PageMeta
 }
 
+export interface RoleAssignment {
+  name: string
+  /**
+   * `direct`     — the user has this role assigned to this group's `fs_group_member_role` row.
+   * `inherited`  — the user has this role on an ancestor and it inherits down the tree.
+   * `realm-admin` — the user is a realm admin, holding `admin` on every group via
+   *                 Keycloak-level grants. Returned only when no more-specific source
+   *                 (direct or inherited) applies.
+   */
+  source: 'direct' | 'inherited' | 'realm-admin'
+}
+
 export interface Group {
   id: string
   name: string
   path: string
-  roles?: string[]
+  parentId?: string | null
+  hasChildren?: boolean
+  /** Root-first ancestry chain (excludes the group itself). Returned by `getGroup`. */
+  ancestors?: Array<{ id: string; name: string }>
+  /**
+   * Inheritance-aware role assignments on the listing endpoint. On other endpoints
+   * (members, invitations) roles are still returned as plain strings.
+   */
+  roles?: RoleAssignment[] | string[]
+  /** True if the user is a direct member of this group (for `member`-baseline). */
+  isDirectMember?: boolean
 }
 
 export interface Member {
@@ -109,6 +131,8 @@ interface ListParams {
   sortBy?: string
   sortDir?: 'asc' | 'desc' | string
   role?: string
+  scope?: 'direct' | 'inherited'
+  parentId?: string
 }
 
 function buildQuery(params: ListParams): string {
@@ -120,6 +144,8 @@ function buildQuery(params: ListParams): string {
   if (params.sortBy) sp.set('sortBy', params.sortBy)
   if (params.sortDir) sp.set('sortDir', params.sortDir)
   if (params.role) sp.set('role', params.role)
+  if (params.scope) sp.set('scope', params.scope)
+  if (params.parentId) sp.set('parentId', params.parentId)
   return sp.toString()
 }
 

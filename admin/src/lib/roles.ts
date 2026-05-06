@@ -32,6 +32,35 @@ export function parseRolePermissionsSafe(str: string | null | undefined): Record
   }
 }
 
+/**
+ * Mirrors `GroupRoleService.computeEffectivePermissions` on the backend. Given the
+ * names of the user's effective roles on a group (direct + inherited), the realm's
+ * role→permission map, the user's realm-admin status, and whether they're a direct
+ * member of the group, returns the set of permissions the UI should treat them as
+ * holding. Used purely for affordance gating — the backend remains the source of
+ * truth on actual access enforcement.
+ *
+ * - Realm admin OR `admin` role (anywhere in the chain) → every permission.
+ * - Otherwise: union of permissions mapped to each effective role.
+ * - Plus the `member`-role baseline if the user is a direct member of the group.
+ */
+export function computePermissions(
+  roleNames: readonly string[],
+  rolePerms: Record<string, readonly string[]>,
+  isRealmAdmin: boolean,
+  isDirectMember: boolean,
+): Set<string> {
+  if (isRealmAdmin || roleNames.includes('admin')) return new Set(PERM_FALLBACK)
+  const out = new Set<string>()
+  for (const r of roleNames) {
+    for (const p of rolePerms[r] ?? []) out.add(p)
+  }
+  if (isDirectMember) {
+    for (const p of rolePerms['member'] ?? []) out.add(p)
+  }
+  return out
+}
+
 export function buildRolesList(
   allowedRolesCsv: string | null | undefined,
   rolePermsJson: string | null | undefined,

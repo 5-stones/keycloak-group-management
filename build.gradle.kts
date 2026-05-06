@@ -122,6 +122,21 @@ val bundleAdminUi = tasks.register<Copy>("bundleAdminUi") {
     dependsOn(buildAdminUi)
     from(layout.projectDirectory.dir("admin/dist"))
     into(adminUiOutputDir)
+    // If clean is also in the task graph, run after it — otherwise Gradle may
+    // parallelize and stage SPA output before clean wipes the build dir.
+    mustRunAfter(tasks.clean)
+}
+
+tasks.clean {
+    // Also remove the admin/dist output so a clean build re-runs Vite from source.
+    // node_modules is intentionally preserved — reinstalling is slow and rarely needed.
+    delete("admin/dist")
+}
+
+tasks.register("rebuildAll") {
+    group = "build"
+    description = "Clean and rebuild everything from scratch (admin SPA + plugin JAR)"
+    dependsOn(tasks.clean, bundleAdminUi, tasks.shadowJar)
 }
 
 tasks.processResources {

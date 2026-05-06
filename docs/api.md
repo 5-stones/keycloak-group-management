@@ -31,7 +31,7 @@ Creating an invitation triggers a templated email — see [Configuration → Cus
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/groups/{groupId}` | Read basic group info. Response: `{id, name, path}`. Requires the caller to be a member of the group (or a realm admin). |
+| `GET` | `/groups/{groupId}` | Read basic group info. Response: `{id, name, path, parentId, ancestors}`. `parentId` is null for top-level groups. `ancestors` is a root-first list of `{id, name}` for every ancestor (excludes self) — useful for clickable breadcrumbs. Requires the caller to be a realm admin, a direct member, OR have any effective permission via inheritance. |
 | `PUT` | `/groups/{groupId}` | Rename the group. Body: `{ "name": "new-name" }`. Requires `group:write`. Rejects names that collide with a sibling. |
 
 ## Members
@@ -55,7 +55,7 @@ Creating an invitation triggers a templated email — see [Configuration → Cus
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/me/groups` | List groups for the authenticated user. Params: `page`, `pageSize`, `search`, `sortBy`, `sortDir` |
+| `GET` | `/me/groups` | List groups for the authenticated user. Params: `page`, `pageSize`, `search`, `sortBy`, `sortDir`, `scope`, `parentId`, `role`. Each row: `{id, name, path, parentId, hasChildren, isDirectMember, roles: Array<{name, source: 'direct' \| 'inherited' \| 'realm-admin'}>}`. Roles include the user's effective assignments via inheritance and realm-admin status. `source` distinguishes: `direct` (stored row on this group), `inherited` (stored row on an ancestor), `realm-admin` (synthesized for realm admins, who hold `admin` on every group). Direct beats inherited beats realm-admin when multiple apply. Combine with `GET /roles` (the realm's role→permission map) and `isDirectMember` to derive effective permissions client-side for affordance gating. |
 
 ## Roles
 
@@ -97,6 +97,9 @@ The realm-attribute keys returned and accepted are documented in [Configuration]
 | `search` | Partial match on group name | _(none)_ |
 | `sortBy` | Sort field: `name` | `name` |
 | `sortDir` | Sort direction: `asc`, `desc` | `asc` |
+| `scope` | `direct` (default) returns only the user's *entry points* — explicit memberships and role assignments. For realm admins, `direct` returns top-level realm groups (their natural starting points for tree navigation). `inherited` returns the descendant closure (every group the user can act on via inheritance); for realm admins, that's every group in the realm. | `direct` |
+| `parentId` | When set, returns the direct children of this group. `scope` is ignored when `parentId` is provided — drilling into a group implies access to its subtree. Non-admins drilling into a group they don't have access to receive an empty result. Use this for tree navigation: start with `scope=direct` (no `parentId`) to get roots, then pass `parentId=<id>` on click to expand. | _(none)_ |
+| `role` | Narrow the listing to groups where the user effectively holds this role. Under `scope=direct`, only direct holdings of the role match. Under `scope=inherited` (or any `parentId` navigation), the descendant closure of those direct holdings is included so inherited holdings count. Realm admins skip narrowing for `role=admin` (they hold admin on every group via the `realm-admin` source); other role names filter to their explicit holdings only. Composes with `scope`, `parentId`, `search`. | _(none)_ |
 
 ## JWT Token Mapper
 

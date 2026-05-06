@@ -26,10 +26,31 @@ class UserGroupsResource(
         @QueryParam("pageSize") @DefaultValue("20") pageSize: Int,
         @QueryParam("search") search: String?,
         @QueryParam("sortBy") @DefaultValue("name") sortBy: String,
-        @QueryParam("sortDir") @DefaultValue("asc") sortDir: String
+        @QueryParam("sortDir") @DefaultValue("asc") sortDir: String,
+        @QueryParam("scope") @DefaultValue("direct") scope: String,
+        @QueryParam("parentId") parentId: String?,
+        @QueryParam("role") role: String?,
     ): Response {
+        val normalizedScope = scope.lowercase()
+        if (normalizedScope !in setOf("direct", "inherited")) {
+            return Response.status(400)
+                .entity(mapOf("error" to "scope must be 'direct' or 'inherited'"))
+                .withCors(auth)
+        }
+        val normalizedParent = parentId?.takeIf { it.isNotBlank() }
+        val normalizedRole = role?.takeIf { it.isNotBlank() }
         val isRealmAdmin = GroupRoleService.isRealmAdmin(session, realm, auth.user)
-        val result = groupService.findGroups(realm, auth.user.id, isRealmAdmin, search, sortBy, sortDir, page, pageSize)
+        val result = groupService.findGroups(
+            realm, auth.user.id, isRealmAdmin,
+            scope = normalizedScope,
+            parentId = normalizedParent,
+            role = normalizedRole,
+            search = search,
+            sortBy = sortBy,
+            sortDir = sortDir,
+            page = page,
+            pageSize = pageSize,
+        )
         return Response.ok(result).withCors(auth)
     }
 }

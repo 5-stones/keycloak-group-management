@@ -105,7 +105,7 @@ export default function App() {
         <Header user={user} isRealmAdmin={isRealmAdmin} />
         <main className="mx-auto max-w-5xl px-6 py-8">
           <Routes>
-            <Route path="/" element={<GroupsListPage />} />
+            <Route path="/" element={<GroupsListPage isRealmAdmin={isRealmAdmin} />} />
             <Route path="/groups/:groupId" element={<GroupDashboard />}>
               <Route index element={<Navigate to="members" replace />} />
               <Route path="members" element={<MembersTab />} />

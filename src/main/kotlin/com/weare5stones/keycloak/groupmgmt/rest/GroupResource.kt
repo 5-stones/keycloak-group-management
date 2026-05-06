@@ -1,5 +1,6 @@
 package com.weare5stones.keycloak.groupmgmt.rest
 
+import com.weare5stones.keycloak.groupmgmt.service.GroupHierarchy
 import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import com.weare5stones.keycloak.groupmgmt.util.fullPath
 import jakarta.ws.rs.Consumes
@@ -10,6 +11,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.models.KeycloakSession
 import org.keycloak.services.managers.AuthenticationManager
 
@@ -20,17 +22,23 @@ class GroupResource(
 ) {
 
     private val realm = session.getContext().realm
+    private val em get() = session.getProvider(JpaConnectionProvider::class.java).entityManager
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun getGroup(): Response {
         val group = session.groups().getGroupById(realm, groupId)
             ?: throw NotFoundException("Group not found")
-        // Any member of the group (or realm admin) can read its basic info.
-        if (!GroupRoleService.isRealmAdmin(session, realm, auth.user) && !auth.user.isMemberOf(group)) {
-            throw ForbiddenException("You are not a member of this group")
+        // Visible to: realm admin, direct members, OR anyone with any effective
+        // permission via inheritance (admin/role on this group OR any ancestor).
+        val canSee = GroupRoleService.isRealmAdmin(session, realm, auth.user)
+            || auth.user.isMemberOf(group)
+            || GroupRoleService.getEffectivePermissions(session, realm, group, auth.user).isNotEmpty()
+        if (!canSee) {
+            throw ForbiddenException("You do not have access to this group")
         }
-        return Response.ok(toMap(group)).withCors(auth)
+        val ancestors = GroupHierarchy.ancestors(em, realm.id, groupId)
+        return Response.ok(toMap(group, ancestors)).withCors(auth)
     }
 
     @PUT
@@ -71,9 +79,14 @@ class GroupResource(
         return Response.ok(toMap(group)).withCors(auth)
     }
 
-    private fun toMap(group: org.keycloak.models.GroupModel): Map<String, Any?> = mapOf(
+    private fun toMap(
+        group: org.keycloak.models.GroupModel,
+        ancestors: List<GroupHierarchy.AncestorRecord> = emptyList(),
+    ): Map<String, Any?> = mapOf(
         "id" to group.id,
         "name" to group.name,
         "path" to group.fullPath(),
+        "parentId" to group.parent?.id,
+        "ancestors" to ancestors.map { mapOf("id" to it.id, "name" to it.name) },
     )
 }

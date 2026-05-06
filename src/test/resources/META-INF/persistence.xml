@@ -8,6 +8,7 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <class>com.weare5stones.keycloak.groupmgmt.entity.GroupMemberRoleEntity</class>
         <class>com.weare5stones.keycloak.groupmgmt.entity.GroupInvitationEntity</class>
+        <class>com.weare5stones.keycloak.groupmgmt.service.KeycloakGroupTestEntity</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>

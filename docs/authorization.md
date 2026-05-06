@@ -7,7 +7,7 @@ The plugin authorizes every REST call against a per-(realm, group, user) role as
 | Subject | Scope |
 |---------|-------|
 | **Realm admin** (`admin` role or `manage-users` on `realm-management`/`{realm}-realm` client) | All operations across all groups; bypasses last-admin guard |
-| **Group admin** (member with the `admin` role in the group's `fs_group_member_role` table) | Implicitly grants every permission below |
+| **Group admin** (member with the `admin` role on the group OR any ancestor group — see [Inheritance](#inheritance)) | Implicitly grants every permission below |
 | **Group member with permission roles** | Specific REST operations gated by individual permissions (see [Permissions](#permissions)) |
 | **Authenticated user** | Accept invitations sent to their email, list their own groups |
 
@@ -31,9 +31,21 @@ Role names are validated against `^[a-z0-9_-]{1,64}$`. A member can hold up to 3
 
 The current vocabulary is queryable via `GET /api/roles` (see [API](api.md#roles)).
 
+## Inheritance
+
+Roles flow **down** the group hierarchy: a role held on an ancestor group is treated as if it were also held on every descendant. This applies uniformly to `admin` and to permission-mapped roles.
+
+- An `admin` on `/Acme` is implicitly an admin on `/Acme/Engineering` and `/Acme/Engineering/Web`.
+- A `manager` on `/Acme` (where `manager` maps to `members:write`) has `members:write` on every descendant.
+- The `member`-role baseline is **not** inherited — it applies only to direct members of the group itself, since membership in Keycloak does not transitively flow down.
+- Inheritance flows down only — admin on `/Acme/Engineering` does **not** confer rights on `/Acme` or its sibling subtrees.
+- Effective permissions on a group are the union of the user's permissions across the group itself and every ancestor.
+- The last-admin guard is relaxed when an ancestor has an admin: removing the last *direct* admin of `/Acme/Engineering` is allowed if `/Acme` (or any further ancestor) still has an admin, since the group remains manageable via inheritance.
+- The "My Groups" listing reflects inheritance: it shows the descendant closure of every group the user is a direct member of OR holds any role in.
+
 ## Permissions
 
-Beyond `admin`, finer-grained access is granted by mapping roles to a fixed permission vocabulary via the `group-mgmt-role-permissions` realm attribute (JSON; see [Configuration](configuration.md)). Each REST endpoint requires a specific permission; a user satisfies the check if they (a) are a realm admin, (b) hold the group's `admin` role, or (c) hold a role whose permission list includes the required permission.
+Beyond `admin`, finer-grained access is granted by mapping roles to a fixed permission vocabulary via the `group-mgmt-role-permissions` realm attribute (JSON; see [Configuration](configuration.md)). Each REST endpoint requires a specific permission; a user satisfies the check if they (a) are a realm admin, (b) hold the `admin` role on the group or any ancestor, or (c) hold a role whose permission list includes the required permission, on the group or any ancestor.
 
 | Permission | What it grants |
 |------------|----------------|
@@ -74,4 +86,4 @@ The check fires at invitation-creation time, not at accept time. The acceptor is
 
 ## Last-admin guard
 
-Removing the last `admin` from a group is rejected with 409, regardless of how the removal is attempted (`setRoles` to a list without `admin`, `DELETE /members/{id}`, etc.). Realm admins bypass this guard so they can recover stranded groups.
+Removing the last `admin` from a group is rejected with 409, regardless of how the removal is attempted (`setRoles` to a list without `admin`, `DELETE /members/{id}`, etc.). Realm admins bypass this guard so they can recover stranded groups. The guard is also relaxed when any ancestor group has an admin — see [Inheritance](#inheritance).
