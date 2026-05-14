@@ -1,3 +1,12 @@
+# [1.0.0-rc.4](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.3...v1.0.0-rc.4) (2026-05-14)
+
+
+### Features
+
+* **authz:** support OPTIONS requests for CORS ([50c5258](https://github.com/5-stones/keycloak-group-management/commit/50c5258a5861e584a7540496eda423cd7f4dcb3d))
+
+
+
 # [1.0.0-rc.3](https://github.com/5-stones/keycloak-group-management/compare/v1.0.0-rc.2...v1.0.0-rc.3) (2026-05-06)
 
 
