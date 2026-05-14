@@ -6,27 +6,41 @@ import com.weare5stones.keycloak.groupmgmt.util.fullPath
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.NotAuthorizedException
 import jakarta.ws.rs.NotFoundException
+import jakarta.ws.rs.OPTIONS
 import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.models.KeycloakSession
+import org.keycloak.services.cors.Cors
+import org.keycloak.services.managers.AppAuthManager
 import org.keycloak.services.managers.AuthenticationManager
 
 class GroupResource(
     private val session: KeycloakSession,
-    private val auth: AuthenticationManager.AuthResult,
     private val groupId: String,
 ) {
 
+    private val tokenAuth = AppAuthManager.BearerTokenAuthenticator(session)
     private val realm = session.getContext().realm
     private val em get() = session.getProvider(JpaConnectionProvider::class.java).entityManager
+
+    private fun authenticate(): AuthenticationManager.AuthResult =
+        tokenAuth.authenticate() ?: throw NotAuthorizedException("Bearer")
+
+    @OPTIONS
+    @Path("{any:.*}")
+    fun preflight(): Response =
+        Cors.builder().preflight().auth().add(Response.ok())
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun getGroup(): Response {
+        val auth = authenticate()
         val group = session.groups().getGroupById(realm, groupId)
             ?: throw NotFoundException("Group not found")
         // Visible to: realm admin, direct members, OR anyone with any effective
@@ -45,6 +59,7 @@ class GroupResource(
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     fun updateGroup(body: Map<String, Any?>): Response {
+        val auth = authenticate()
         val group = GroupRoleService.requirePermission(
             session, realm, groupId, auth.user, GroupRoleService.PERM_GROUP_WRITE
         )

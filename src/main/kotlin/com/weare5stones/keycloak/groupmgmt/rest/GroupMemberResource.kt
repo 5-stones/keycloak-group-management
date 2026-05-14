@@ -6,7 +6,9 @@ import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.DefaultValue
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.NotAuthorizedException
 import jakarta.ws.rs.NotFoundException
+import jakarta.ws.rs.OPTIONS
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
@@ -15,16 +17,26 @@ import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.keycloak.models.KeycloakSession
+import org.keycloak.services.cors.Cors
+import org.keycloak.services.managers.AppAuthManager
 import org.keycloak.services.managers.AuthenticationManager
 
 class GroupMemberResource(
     private val session: KeycloakSession,
-    private val auth: AuthenticationManager.AuthResult,
     private val groupId: String
 ) {
 
+    private val tokenAuth = AppAuthManager.BearerTokenAuthenticator(session)
     private val realm = session.getContext().realm
     private val memberService = GroupMemberService(session)
+
+    private fun authenticate(): AuthenticationManager.AuthResult =
+        tokenAuth.authenticate() ?: throw NotAuthorizedException("Bearer")
+
+    @OPTIONS
+    @Path("{any:.*}")
+    fun preflight(): Response =
+        Cors.builder().preflight().auth().add(Response.ok())
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -36,6 +48,7 @@ class GroupMemberResource(
         @QueryParam("sortDir") @DefaultValue("asc") sortDir: String,
         @QueryParam("role") role: String?
     ): Response {
+        val auth = authenticate()
         GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_MEMBERS_READ)
         val result = try {
             memberService.findMembers(groupId, search, sortBy, sortDir, page, pageSize, role)
@@ -49,6 +62,7 @@ class GroupMemberResource(
     @Path("{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     fun removeMember(@PathParam("userId") userId: String): Response {
+        val auth = authenticate()
         val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_MEMBERS_WRITE)
         val user = session.users().getUserById(realm, userId)
             ?: throw NotFoundException("User not found")
@@ -71,6 +85,7 @@ class GroupMemberResource(
         @PathParam("userId") userId: String,
         body: Map<String, Any?>
     ): Response {
+        val auth = authenticate()
         val group = GroupRoleService.requirePermission(session, realm, groupId, auth.user, GroupRoleService.PERM_ROLES_WRITE)
         val user = session.users().getUserById(realm, userId)
             ?: throw NotFoundException("User not found")

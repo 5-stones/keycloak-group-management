@@ -4,20 +4,31 @@ import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import com.weare5stones.keycloak.groupmgmt.service.UserGroupService
 import jakarta.ws.rs.DefaultValue
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.NotAuthorizedException
+import jakarta.ws.rs.OPTIONS
+import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.keycloak.models.KeycloakSession
+import org.keycloak.services.cors.Cors
+import org.keycloak.services.managers.AppAuthManager
 import org.keycloak.services.managers.AuthenticationManager
 
-class UserGroupsResource(
-    private val session: KeycloakSession,
-    private val auth: AuthenticationManager.AuthResult
-) {
+class UserGroupsResource(private val session: KeycloakSession) {
 
+    private val tokenAuth = AppAuthManager.BearerTokenAuthenticator(session)
     private val realm = session.getContext().realm
     private val groupService = UserGroupService(session)
+
+    private fun authenticate(): AuthenticationManager.AuthResult =
+        tokenAuth.authenticate() ?: throw NotAuthorizedException("Bearer")
+
+    @OPTIONS
+    @Path("{any:.*}")
+    fun preflight(): Response =
+        Cors.builder().preflight().auth().add(Response.ok())
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -31,6 +42,7 @@ class UserGroupsResource(
         @QueryParam("parentId") parentId: String?,
         @QueryParam("role") role: String?,
     ): Response {
+        val auth = authenticate()
         val normalizedScope = scope.lowercase()
         if (normalizedScope !in setOf("direct", "inherited")) {
             return Response.status(400)

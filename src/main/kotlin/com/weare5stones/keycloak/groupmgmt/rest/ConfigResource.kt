@@ -4,17 +4,19 @@ import com.weare5stones.keycloak.groupmgmt.service.GroupRoleService
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.NotAuthorizedException
+import jakarta.ws.rs.OPTIONS
 import jakarta.ws.rs.PUT
+import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.keycloak.models.KeycloakSession
+import org.keycloak.services.cors.Cors
+import org.keycloak.services.managers.AppAuthManager
 import org.keycloak.services.managers.AuthenticationManager
 
-class ConfigResource(
-    private val session: KeycloakSession,
-    private val auth: AuthenticationManager.AuthResult
-) {
+class ConfigResource(private val session: KeycloakSession) {
 
     companion object {
         val CONFIG_KEYS = listOf(
@@ -32,18 +34,28 @@ class ConfigResource(
                 .toSet()
     }
 
+    private val tokenAuth = AppAuthManager.BearerTokenAuthenticator(session)
     private val realm = session.getContext().realm
 
-    private fun requireRealmAdmin() {
+    private fun authenticate(): AuthenticationManager.AuthResult =
+        tokenAuth.authenticate() ?: throw NotAuthorizedException("Bearer")
+
+    private fun requireRealmAdmin(auth: AuthenticationManager.AuthResult) {
         if (!GroupRoleService.isRealmAdmin(session, realm, auth.user)) {
             throw ForbiddenException("Realm admin access required")
         }
     }
 
+    @OPTIONS
+    @Path("{any:.*}")
+    fun preflight(): Response =
+        Cors.builder().preflight().auth().add(Response.ok())
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     fun getConfig(): Response {
-        requireRealmAdmin()
+        val auth = authenticate()
+        requireRealmAdmin(auth)
 
         val config = CONFIG_KEYS.associateWith { key ->
             realm.getAttribute(key)
@@ -56,7 +68,8 @@ class ConfigResource(
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     fun updateConfig(body: Map<String, String?>): Response {
-        requireRealmAdmin()
+        val auth = authenticate()
+        requireRealmAdmin(auth)
 
         // Pre-validate role-permissions JSON against the prospective allowed-roles.
         val rolePermsRaw = body[GroupRoleService.ROLE_PERMISSIONS_ATTRIBUTE]
